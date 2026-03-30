@@ -1,0 +1,4 @@
+backend/target
+docs/
+frontend/.nuxt
+frontend/node_modules
