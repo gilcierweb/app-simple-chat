@@ -1,5 +1,5 @@
-# ─── Stage 1: builder ─────────────────────────────────────────────────────────
-FROM rust:1.82-bookworm AS builder
+# -- Stage 1: builder 
+FROM rust:1.92-bookworm AS builder
 
 WORKDIR /app
 
@@ -14,7 +14,7 @@ COPY src ./src
 COPY migrations ./migrations
 RUN cargo build --release
 
-# ─── Stage 2: runtime ─────────────────────────────────────────────────────────
+# -- Stage 2: runtime 
 FROM debian:bookworm-slim
 
 RUN apt-get update && apt-get install -y \
