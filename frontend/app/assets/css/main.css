@@ -19,32 +19,32 @@
     prefersdark: true;
     color-scheme: dark;
 
-    /* Base Colors (Hex Match) */
-    --color-base-100: oklch(12.72% 0.016 270.36); /* #0B0B0F */
-    --color-base-200: oklch(18.57% 0.018 270.36); /* #1A1A22 */
-    --color-base-300: oklch(25.33% 0.024 270.36); /* #2A2A35 */
-    --color-base-content: oklch(97.2% 0.004 270.36); /* #F5F5F7 */
+    /* Base Colors (Hex Match - Dark Mode Seguro) */
+    --color-base-100: oklch(16.5% 0.012 265); /* #0F1115 */
+    --color-base-200: oklch(21.5% 0.015 265); /* #1A1D24 */
+    --color-base-300: oklch(28% 0.018 265); /* #2C2F36 */
+    --color-base-content: oklch(95% 0.005 265); /* #EAECEE */
 
-    /* Brand Colors (Roxo) */
-    --color-primary: oklch(54.4% 0.28 295.36); /* #8A2BE2 */
-    --color-primary-content: oklch(97.2% 0.004 270.36);
+    /* Brand Colors (Verde Primária) */
+    --color-primary: oklch(72% 0.22 145); /* #2ECC71 */
+    --color-primary-content: oklch(16.5% 0.012 265); /* #0F1115 */
 
-    /* Secondary (Magenta) */
-    --color-secondary: oklch(62.8% 0.25 345.36); /* #FF2E88 */
-    --color-secondary-content: oklch(97.2% 0.004 270.36);
+    /* Secondary (Verde Escuro) */
+    --color-secondary: oklch(65% 0.2 145); /* #27AE60 */
+    --color-secondary-content: oklch(16.5% 0.012 265); /* #0F1115 */
 
-    /* Accent (Aura) */
-    --color-accent: oklch(73.2% 0.2 345.36); /* #FF5FA2 */
+    /* Accent (Verde Claro) */
+    --color-accent: oklch(78% 0.18 145); /* #58D68D */
 
     /* Neutral */
-    --color-neutral: oklch(18.57% 0.018 270.36);
-    --color-neutral-content: oklch(82.4% 0.01 270.36); /* #C7C7CC */
+    --color-neutral: oklch(21.5% 0.015 265); /* #1A1D24 */
+    --color-neutral-content: oklch(72% 0.01 265); /* #A6ACAF */
 
     /* States */
     --color-info: oklch(70% 0.15 220);
-    --color-success: oklch(72% 0.2 145);
-    --color-warning: oklch(75% 0.18 85);
-    --color-error: oklch(60% 0.22 25);
+    --color-success: oklch(72% 0.22 145); /* #2ECC71 */
+    --color-warning: oklch(82% 0.18 95); /* #F1C40F */
+    --color-error: oklch(58% 0.22 25); /* #E74C3C */
 
     --radius-selector: 1rem;
     --radius-field: 0.75rem;
@@ -58,26 +58,26 @@
     --font-display: 'Space Grotesk', system-ui, sans-serif;
     --font-mono: 'JetBrains Mono', monospace;
 
-    /* Brand Colors */
-    --color-brand-400: #A855F7;
-    --color-brand-500: #8A2BE2;
-    --color-brand-600: #6D28D9;
-    --color-brand-700: #4C1D95;
+    /* Brand Colors (Verde) */
+    --color-brand-400: #58D68D;
+    --color-brand-500: #2ECC71;
+    --color-brand-600: #27AE60;
+    --color-brand-700: #1E8B4C;
 
-    /* Accent Colors */
-    --color-accent-400: #FF5FA2;
-    --color-accent-500: #FF2E88;
+    /* Accent Colors (Verde) */
+    --color-accent-400: #7EE8A8;
+    --color-accent-500: #58D68D;
 
     /* Text Colors */
-    --color-text-primary: #F5F5F7;
-    --color-text-secondary: #C7C7CC;
-    --color-text-muted: #8E8E93;
+    --color-text-primary: #EAECEE;
+    --color-text-secondary: #A6ACAF;
+    --color-text-muted: #6B7075;
 
     /* Base Colors */
-    --color-dark-950: #0B0B0F;
-    --color-dark-900: #1A1A22;
-    --color-dark-800: #2A2A35;
-    --color-dark-700: #3A3A4A;
+    --color-dark-950: #0F1115;
+    --color-dark-900: #1A1D24;
+    --color-dark-800: #2C2F36;
+    --color-dark-700: #3A3E47;
 
     /* Animations */
     --animate-fade-in: fadeIn 0.4s cubic-bezier(0.16, 1, 0.3, 1);
@@ -109,8 +109,8 @@ html {
 
 body {
     font-family: var(--font-sans);
-    background-color: #0B0B0F;
-    color: #F5F5F7;
+    background-color: #0F1115;
+    color: #EAECEE;
     min-height: 100vh;
 }
 

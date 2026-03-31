@@ -1,0 +1,846 @@
+use crate::{
+    auth::password::{password_hash, verify},
+    errors::{AppError, AppResult},
+    middleware::auth::AuthUser,
+    models::profile::NewProfile,
+    models::refresh_token::{NewRefreshToken, RefreshToken},
+    models::user::{NewUser, User},
+    repositories::container::AppContainer,
+};
+use actix_web::{HttpRequest, HttpResponse, get, post, web};
+use chrono::Utc;
+use diesel::result::Error as DieselError;
+use serde::{Deserialize, Serialize};
+use utoipa::ToSchema;
+use uuid::Uuid;
+use validator::Validate;
+
+// ── Request/Response DTOs ──────────────────────────────────────────
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct RegisterRequest {
+    #[validate(email(message = "auth.validation.invalid_email"))]
+    pub email: String,
+    #[validate(length(min = 8, message = "auth.validation.password_too_short"))]
+    pub password: String,
+    pub password_confirmation: String,
+}
+
+#[derive(Debug, Deserialize, Validate, ToSchema)]
+pub struct LoginRequest {
+    #[validate(email(message = "auth.validation.invalid_email"))]
+    pub email: String,
+    pub password: String,
+    /// Optional TOTP code if 2FA is enabled
+    pub otp_code: Option<String>,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct RefreshRequest {
+    pub refresh_token: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct RecoverRequest {
+    #[validate(email(message = "auth.validation.invalid_email"))]
+    pub email: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct ResetPasswordRequest {
+    pub token: String,
+    #[validate(length(min = 8, message = "auth.validation.password_too_short"))]
+    pub password: String,
+    pub password_confirmation: String,
+}
+
+#[derive(Debug, Deserialize)]
+pub struct Enable2FARequest {
+    pub otp_code: String,
+}
+
+#[derive(Debug, Deserialize, Validate)]
+pub struct ChangePasswordRequest {
+    pub current_password: String,
+    #[validate(length(min = 8, message = "auth.validation.password_too_short"))]
+    pub new_password: String,
+    pub password_confirmation: String,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct AuthResponse {
+    pub access_token: String,
+    pub refresh_token: String,
+    pub token_type: &'static str,
+    pub expires_in: i64,
+    pub user: UserInfo,
+}
+
+#[derive(Debug, Serialize, ToSchema)]
+pub struct UserInfo {
+    pub id: Uuid,
+    pub email: String,
+    pub profile_id: Uuid,
+    pub is_otp_enabled: bool,
+    pub roles: Vec<String>,
+}
+
+// POST /api/auth/register
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/register",
+    request_body = RegisterRequest,
+    responses(
+        (status = 201, description = "User registered successfully"),
+        (status = 409, description = "Email already exists")
+    )
+)]
+#[post("/register")]
+pub async fn register(
+    container: web::Data<AppContainer>,
+    body: web::Json<RegisterRequest>,
+) -> AppResult<HttpResponse> {
+    body.validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    if body.password != body.password_confirmation {
+        return Err(AppError::Validation(
+            t!("auth.password.mismatch").into_owned(),
+        ));
+    }
+
+    let encrypted_password = password_hash(body.password.clone());
+    let now = Utc::now();
+    let confirmation_token = Uuid::new_v4().to_string();
+
+    let new_user = NewUser {
+        id: Uuid::new_v4(),
+        email: body.email.clone(),
+        encrypted_password,
+        confirmation_token: Some(confirmation_token.clone()),
+        created_at: now,
+        updated_at: now,
+    };
+
+    let user: User = match container.users.create(&new_user).await {
+        Ok(u) => u,
+        Err(DieselError::DatabaseError(diesel::result::DatabaseErrorKind::UniqueViolation, _)) => {
+            return Err(AppError::Conflict(
+                t!("auth.register.email_exists").into_owned(),
+            ));
+        }
+        Err(e) => return Err(AppError::Database(e)),
+    };
+
+    // Create profile for the user
+    let new_profile = NewProfile::for_user(user.id);
+    container
+        .profiles
+        .create(&new_profile)
+        .await
+        .map_err(AppError::Database)?;
+
+    // TODO: Send confirmation email (requires email service integration)
+    println!(
+        "DEBUG: Confirmation token for {}: {}",
+        user.email, confirmation_token
+    );
+
+    Ok(HttpResponse::Created().json(serde_json::json!({
+        "message": t!("auth.register.success"),
+        "user_id": user.id,
+    })))
+}
+
+// GET /api/auth/confirm?token=xxx
+#[get("/confirm")]
+pub async fn confirm(
+    container: web::Data<AppContainer>,
+    query: web::Query<std::collections::HashMap<String, String>>,
+) -> AppResult<HttpResponse> {
+    let token = query
+        .get("token")
+        .ok_or_else(|| AppError::BadRequest(t!("auth.reset.token_invalid").into_owned()))?;
+
+    // Find user by confirmation token and confirm email
+    container
+        .users
+        .confirm_email(token)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.register.email_confirmed")
+    })))
+}
+
+// POST /api/auth/login
+#[utoipa::path(
+    post,
+    path = "/api/v1/auth/login",
+    request_body = LoginRequest,
+    responses(
+        (status = 200, description = "Login successful", body = AuthResponse),
+        (status = 401, description = "Unauthorized - Invalid credentials"),
+        (status = 403, description = "Forbidden - OTP required"),
+        (status = 423, description = "Locked - Temporary lockout due to failed attempts")
+    )
+)]
+#[post("/login")]
+pub async fn login(
+    req: HttpRequest,
+    container: web::Data<AppContainer>,
+    body: web::Json<LoginRequest>,
+) -> AppResult<HttpResponse> {
+    body.validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    // Find user by email
+    let user: User = match container.users.find_by_email(&body.email).await {
+        Ok(Some(u)) => u,
+        Ok(None) => {
+            return Err(AppError::Unauthorized(t!("auth.login.failed").into_owned()));
+        }
+        Err(e) => return Err(AppError::Database(e)),
+    };
+
+    // Check if account is locked
+    if user.is_locked() {
+        return Err(AppError::BadRequest(t!("auth.login.locked").into_owned()));
+    }
+
+    // Check email confirmation
+    if !user.is_confirmed() {
+        return Err(AppError::BadRequest(
+            t!("auth.login.email_not_confirmed").into_owned(),
+        ));
+    }
+
+    // Verify password
+    let password_valid = verify(body.password.clone(), user.encrypted_password.clone());
+    if !password_valid {
+        container
+            .users
+            .record_failed_login(&user.id, 10)
+            .await
+            .map_err(AppError::Database)?;
+        return Err(AppError::Unauthorized(t!("auth.login.failed").into_owned()));
+    }
+
+    // Verify TOTP if 2FA is enabled
+    if user.is_otp_enabled() {
+        match &body.otp_code {
+            None => {
+                return Ok(HttpResponse::Ok().json(serde_json::json!({
+                    "requires_otp": true,
+                    "message": t!("auth.2fa.setup_required")
+                })));
+            }
+            Some(code) => {
+                let secret = user.otp_secret.as_ref().ok_or(AppError::Internal(
+                    t!("auth.2fa.invalid_secret").into_owned(),
+                ))?;
+                verify_totp(secret, code)?;
+            }
+        }
+    }
+
+    // Get profile ID
+    let profile = container
+        .profiles
+        .find_by_user_id(&user.id)
+        .await
+        .map_err(AppError::Database)?
+        .ok_or(AppError::Internal(
+            t!("users.profile_not_found").into_owned(),
+        ))?;
+
+    // Generate tokens
+    let access_token = crate::middleware::auth::create_token(
+        user.id,
+        profile.id,
+        user.email.clone(),
+        &container.config.jwt_secret,
+        container.config.jwt_access_expiry_secs,
+    )?;
+
+    let refresh_token_plain = generate_random_token(48);
+    let refresh_token_hash = hash_token(&refresh_token_plain);
+
+    // Store refresh token
+    let ip_string = req
+        .connection_info()
+        .realip_remote_addr()
+        .map(|s| s.to_string());
+
+    let ip: Option<ipnet::IpNet> = ip_string
+        .as_ref()
+        .and_then(|s| s.parse::<ipnet::IpNet>().ok());
+
+    let new_refresh = NewRefreshToken {
+        id: Uuid::new_v4(),
+        user_id: user.id,
+        token_hash: refresh_token_hash,
+        device_info: req
+            .headers()
+            .get("User-Agent")
+            .and_then(|h| h.to_str().ok())
+            .map(|s| s.to_string()),
+        ip_address: ip_string.clone(),
+        expires_at: Utc::now()
+            + chrono::Duration::seconds(container.config.jwt_refresh_expiry_secs),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+
+    container
+        .refresh_tokens
+        .create(&new_refresh)
+        .await
+        .map_err(AppError::Database)?;
+
+    // Record successful login
+    container
+        .users
+        .record_successful_login(&user.id, ip)
+        .await
+        .map_err(AppError::Database)?;
+
+    // Get user roles
+    let roles = container
+        .users
+        .get_user_roles(&user.id)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(AuthResponse {
+        access_token,
+        refresh_token: refresh_token_plain,
+        token_type: "Bearer",
+        expires_in: container.config.jwt_access_expiry_secs,
+        user: UserInfo {
+            id: user.id,
+            email: user.email.clone(),
+            profile_id: profile.id,
+            is_otp_enabled: user.is_otp_enabled(),
+            roles,
+        },
+    }))
+}
+
+// POST /api/auth/refresh
+#[post("/refresh")]
+pub async fn refresh(
+    container: web::Data<AppContainer>,
+    body: web::Json<RefreshRequest>,
+) -> AppResult<HttpResponse> {
+    let token_hash = hash_token(&body.refresh_token);
+
+    let stored: RefreshToken = match container
+        .refresh_tokens
+        .find_by_token_hash(&token_hash)
+        .await
+    {
+        Ok(Some(t)) => t,
+        Ok(None) => return Err(AppError::Unauthorized("Invalid refresh token".to_string())),
+        Err(e) => return Err(AppError::Database(e)),
+    };
+
+    if !stored.is_valid() {
+        return Err(AppError::Unauthorized(
+            "Refresh token expired or revoked".to_string(),
+        ));
+    }
+
+    // Revoke old token
+    container
+        .refresh_tokens
+        .revoke(&stored.id)
+        .await
+        .map_err(AppError::Database)?;
+
+    // Get user
+    let user = container
+        .users
+        .find(&stored.user_id)
+        .await
+        .map_err(AppError::Database)?;
+
+    // Get profile
+    let _profile = container
+        .profiles
+        .find_by_user_id(&user.id)
+        .await
+        .map_err(AppError::Database)?
+        .ok_or(AppError::Internal(
+            t!("users.profile_not_found").into_owned(),
+        ))?;
+
+    // Generate new tokens
+    let access_token = crate::middleware::auth::create_token(
+        user.id,
+        _profile.id,
+        user.email.clone(),
+        &container.config.jwt_secret,
+        container.config.jwt_access_expiry_secs,
+    )?;
+
+    let new_refresh_plain = generate_random_token(48);
+    let new_refresh = NewRefreshToken {
+        id: Uuid::new_v4(),
+        user_id: user.id,
+        token_hash: hash_token(&new_refresh_plain),
+        device_info: stored.device_info,
+        ip_address: stored.ip_address,
+        expires_at: Utc::now()
+            + chrono::Duration::seconds(container.config.jwt_refresh_expiry_secs),
+        created_at: Utc::now(),
+        updated_at: Utc::now(),
+    };
+
+    container
+        .refresh_tokens
+        .create(&new_refresh)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "access_token": access_token,
+        "refresh_token": new_refresh_plain,
+        "token_type": "Bearer",
+        "expires_in": container.config.jwt_access_expiry_secs,
+    })))
+}
+
+// POST /api/auth/logout
+#[post("/logout")]
+pub async fn logout(
+    container: web::Data<AppContainer>,
+    body: web::Json<RefreshRequest>,
+) -> AppResult<HttpResponse> {
+    let token_hash = hash_token(&body.refresh_token);
+
+    if let Ok(Some(token)) = container
+        .refresh_tokens
+        .find_by_token_hash(&token_hash)
+        .await
+    {
+        container
+            .refresh_tokens
+            .revoke(&token.id)
+            .await
+            .map_err(AppError::Database)?;
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.logout.success")
+    })))
+}
+
+// POST /api/auth/recover
+#[post("/recover")]
+pub async fn recover_password(
+    container: web::Data<AppContainer>,
+    body: web::Json<RecoverRequest>,
+) -> AppResult<HttpResponse> {
+    body.validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    // Ignore errors — always return success to prevent email enumeration
+    if let Ok(Some(user)) = container.users.find_by_email(&body.email).await {
+        let token = Uuid::new_v4().to_string();
+        let now = Utc::now().naive_utc();
+
+        container
+            .users
+            .create_password_reset_token(&user.id, &token, now)
+            .await
+            .map_err(AppError::Database)?;
+
+        // TODO: Send password reset email
+        println!("DEBUG: Password reset token for {}: {}", user.email, token);
+    }
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.recover.email_sent")
+    })))
+}
+
+// POST /api/auth/reset
+#[post("/reset")]
+pub async fn reset_password(
+    container: web::Data<AppContainer>,
+    body: web::Json<ResetPasswordRequest>,
+) -> AppResult<HttpResponse> {
+    body.validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    if body.password != body.password_confirmation {
+        return Err(AppError::Validation("Passwords do not match".to_string()));
+    }
+
+    container
+        .users
+        .reset_password(&body.token, &body.password)
+        .await
+        .map_err(|_| AppError::BadRequest(t!("auth.reset.token_invalid").into_owned()))?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.reset.success")
+    })))
+}
+
+// POST /api/auth/2fa/setup
+#[post("/2fa/setup")]
+pub async fn setup_2fa(
+    user: AuthUser,
+    container: web::Data<AppContainer>,
+) -> AppResult<HttpResponse> {
+    use totp_rs::{Algorithm as TotpAlgorithm, Secret, TOTP};
+
+    let secret = Secret::generate_secret();
+    let secret_base32 = secret.to_encoded().to_string();
+
+    let totp = TOTP::new(
+        TotpAlgorithm::SHA1,
+        6,
+        1,
+        30,
+        secret.to_bytes().unwrap(),
+        Some(container.config.totp_issuer.clone()),
+        user.claims().email.clone(),
+    )
+    .map_err(|e| AppError::Internal(format!("TOTP error: {}", e)))?;
+
+    let qr_code_url = totp.get_url();
+
+    // Store secret temporarily (not enabled until verified)
+    container
+        .users
+        .set_otp_secret(&user.claims().sub, &secret_base32)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "secret": secret_base32,
+        "qr_code_url": qr_code_url,
+        "message": t!("auth.2fa.setup_instructions")
+    })))
+}
+
+// POST /api/auth/2fa/enable
+#[post("/2fa/enable")]
+pub async fn enable_2fa(
+    user: AuthUser,
+    container: web::Data<AppContainer>,
+    body: web::Json<Enable2FARequest>,
+) -> AppResult<HttpResponse> {
+    let user_id = user.claims().sub;
+
+    let user_data = container
+        .users
+        .find(&user_id)
+        .await
+        .map_err(AppError::Database)?;
+
+    let secret = user_data
+        .otp_secret
+        .as_ref()
+        .ok_or_else(|| AppError::BadRequest(t!("auth.2fa.setup_not_initiated").into_owned()))?;
+
+    verify_totp(secret, &body.otp_code)?;
+
+    // Generate backup codes
+    let backup_codes: Vec<String> = (0..8)
+        .map(|_| generate_random_token(4).to_uppercase())
+        .collect();
+
+    container
+        .users
+        .enable_2fa(&user_id, &backup_codes)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.2fa.setup_success"),
+        "backup_codes": backup_codes,
+        "warning": t!("auth.2fa.backup_codes_warning")
+    })))
+}
+
+// POST /api/auth/2fa/disable
+#[post("/2fa/disable")]
+pub async fn disable_2fa(
+    user: AuthUser,
+    container: web::Data<AppContainer>,
+    body: web::Json<Enable2FARequest>,
+) -> AppResult<HttpResponse> {
+    let user_id = user.claims().sub;
+
+    let user_data = container
+        .users
+        .find(&user_id)
+        .await
+        .map_err(AppError::Database)?;
+
+    let secret = user_data
+        .otp_secret
+        .as_ref()
+        .ok_or_else(|| AppError::BadRequest(t!("auth.2fa.not_enabled").into_owned()))?;
+
+    verify_totp(secret, &body.otp_code)?;
+
+    container
+        .users
+        .disable_2fa(&user_id)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.2fa.disabled_success")
+    })))
+}
+
+// POST /api/auth/change-password
+#[post("/change-password")]
+pub async fn change_password(
+    user: AuthUser,
+    container: web::Data<AppContainer>,
+    body: web::Json<ChangePasswordRequest>,
+) -> AppResult<HttpResponse> {
+    body.validate()
+        .map_err(|e| AppError::Validation(e.to_string()))?;
+
+    if body.new_password != body.password_confirmation {
+        return Err(AppError::Validation("Passwords do not match".into()));
+    }
+
+    let user_id = user.claims().sub;
+
+    let user_data = container
+        .users
+        .find(&user_id)
+        .await
+        .map_err(AppError::Database)?;
+
+    if !verify(
+        body.current_password.clone(),
+        user_data.encrypted_password.clone(),
+    ) {
+        return Err(AppError::Unauthorized(
+            t!("auth.password.invalid_current").into_owned(),
+        ));
+    }
+
+    validate_password_strength(&body.new_password)?;
+    let hashed = password_hash(body.new_password.clone());
+
+    container
+        .users
+        .update_password(&user_id, &hashed)
+        .await
+        .map_err(AppError::Database)?;
+
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "message": t!("auth.password.changed_success")
+    })))
+}
+
+// GET /api/auth/me
+#[get("/me")]
+pub async fn me(user: AuthUser) -> AppResult<HttpResponse> {
+    Ok(HttpResponse::Ok().json(serde_json::json!({
+        "id": user.claims().sub,
+        "email": user.claims().email,
+    })))
+}
+
+// ── Helpers ────────────────────────────────────────────────────────
+
+fn verify_totp(secret_base32: &str, code: &str) -> AppResult<()> {
+    use totp_rs::{Algorithm as TotpAlgorithm, Secret, TOTP};
+
+    let secret = Secret::Encoded(secret_base32.to_string());
+    let totp = TOTP::new(
+        TotpAlgorithm::SHA1,
+        6,
+        1,
+        30,
+        secret
+            .to_bytes()
+            .map_err(|_| AppError::Unauthorized("Invalid TOTP secret".to_string()))?,
+        None,
+        "".to_string(),
+    )
+    .map_err(|_| AppError::Unauthorized("Invalid TOTP".to_string()))?;
+
+    if totp
+        .check_current(code)
+        .map_err(|_| AppError::Unauthorized("Invalid TOTP code".to_string()))?
+    {
+        Ok(())
+    } else {
+        Err(AppError::Unauthorized("Invalid TOTP code".to_string()))
+    }
+}
+
+fn generate_random_token(length: usize) -> String {
+    use rand::Rng;
+    const CHARSET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let mut rng = rand::thread_rng();
+    (0..length)
+        .map(|_| {
+            let idx = rng.gen_range(0..CHARSET.len());
+            CHARSET[idx] as char
+        })
+        .collect()
+}
+
+fn hash_token(token: &str) -> String {
+    use sha2::{Digest, Sha256};
+    let mut hasher = Sha256::new();
+    hasher.update(token.as_bytes());
+    format!("{:x}", hasher.finalize())
+}
+
+fn validate_password_strength(password: &str) -> AppResult<()> {
+    if password.len() < 8 {
+        return Err(AppError::Validation(
+            "Password must be at least 8 characters".to_string(),
+        ));
+    }
+    Ok(())
+}
+
+// Helper trait extensions for User
+pub trait UserExt {
+    fn is_locked(&self) -> bool;
+    fn is_confirmed(&self) -> bool;
+    fn is_otp_enabled(&self) -> bool;
+}
+
+impl UserExt for User {
+    fn is_locked(&self) -> bool {
+        self.locked_at.is_some()
+    }
+
+    fn is_confirmed(&self) -> bool {
+        self.confirmed_at.is_some()
+    }
+
+    fn is_otp_enabled(&self) -> bool {
+        self.otp_enabled_at.is_some() && self.otp_secret.is_some()
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::repositories::test_utils::mocks::mock_container;
+    use crate::repositories::users_repository::MockIUserRepository;
+    use actix_web::{App, test, web};
+    use serde_json::json;
+    use std::sync::Arc;
+
+    #[actix_web::test]
+    async fn test_login_user_not_found() {
+        let mut mock_users = MockIUserRepository::new();
+
+        mock_users
+            .expect_find_by_email()
+            .with(mockall::predicate::eq("nonexistent@example.com"))
+            .times(1)
+            .returning(|_| Ok(None));
+
+        let mut container = mock_container();
+        container.users = Arc::new(mock_users);
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(container))
+                .service(login),
+        )
+        .await;
+
+        let req = test::TestRequest::post()
+            .uri("/login")
+            .set_json(&json!({
+                "email": "nonexistent@example.com",
+                "password": "Password123"
+            }))
+            .to_request();
+
+        let resp = test::call_service(&app, req).await;
+
+        // Ensure that a non-existing user gets a 401 Unauthorized
+        assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
+    }
+
+    #[actix_web::test]
+    async fn test_login_invalid_password() {
+        use crate::models::user::User;
+        let mut mock_users = MockIUserRepository::new();
+
+        mock_users
+            .expect_find_by_email()
+            .with(mockall::predicate::eq("user@example.com"))
+            .times(1)
+            .returning(|_| {
+                Ok(Some(User {
+                    id: Uuid::new_v4(),
+                    email: "user@example.com".to_string(),
+                    encrypted_password: crate::auth::password::password_hash(
+                        "CorrectPassword1".to_string(),
+                    ),
+                    reset_password_token: None,
+                    reset_password_sent_at: None,
+                    remember_created_at: None,
+                    sign_in_count: 0,
+                    current_sign_in_at: None,
+                    last_sign_in_at: None,
+                    current_sign_in_ip: None,
+                    last_sign_in_ip: None,
+                    confirmation_token: None,
+                    confirmed_at: Some(chrono::Utc::now()),
+                    confirmation_sent_at: None,
+                    unconfirmed_email: None,
+                    failed_attempts: 0,
+                    unlock_token: None,
+                    locked_at: None,
+                    otp_secret: None,
+                    otp_enabled_at: None,
+                    otp_backup_codes: None,
+                    created_at: chrono::Utc::now(),
+                    updated_at: chrono::Utc::now(),
+                }))
+            });
+
+        mock_users
+            .expect_record_failed_login()
+            .times(1)
+            .returning(|_, _| Ok(1));
+
+        let mut container = mock_container();
+        container.users = Arc::new(mock_users);
+
+        let app = test::init_service(
+            App::new()
+                .app_data(web::Data::new(container))
+                .service(login),
+        )
+        .await;
+
+        let req = test::TestRequest::post()
+            .uri("/login")
+            .set_json(&json!({
+                "email": "user@example.com",
+                "password": "WrongPassword2"
+            }))
+            .to_request();
+
+        let resp = test::call_service(&app, req).await;
+
+        // Ensure invalid password gets 401
+        assert_eq!(resp.status(), actix_web::http::StatusCode::UNAUTHORIZED);
+    }
+}

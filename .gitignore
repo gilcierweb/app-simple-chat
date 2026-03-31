@@ -2,3 +2,13 @@ backend/target
 docs/
 frontend/.nuxt
 frontend/node_modules
+
+# Editor directories and files
+.idea
+.vscode
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+nbproject/*
+/nbproject/private/coverage

@@ -1,0 +1,67 @@
+@import "tailwindcss";
+@plugin "flyonui";
+
+/* Custom design tokens */
+:root {
+  --chat-bubble-out: #dcf8c6;
+  --chat-bubble-in: #ffffff;
+  --chat-bubble-out-dark: #005c4b;
+  --chat-bubble-in-dark: #1f2c34;
+  --sidebar-width: 360px;
+}
+
+/* Scrollbar styling */
+::-webkit-scrollbar {
+  width: 4px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: #ccc;
+  border-radius: 4px;
+}
+
+/* Chat layout */
+.chat-layout {
+  display: grid;
+  grid-template-columns: var(--sidebar-width) 1fr;
+  height: 100dvh;
+  overflow: hidden;
+}
+
+/* Message bubbles */
+.msg-out {
+  background: var(--chat-bubble-out);
+  border-radius: 12px 0 12px 12px;
+  max-width: 70%;
+  word-break: break-word;
+}
+
+.msg-in {
+  background: var(--chat-bubble-in);
+  border-radius: 0 12px 12px 12px;
+  max-width: 70%;
+  word-break: break-word;
+}
+
+@media (prefers-color-scheme: dark) {
+  .msg-out { background: var(--chat-bubble-out-dark); }
+  .msg-in  { background: var(--chat-bubble-in-dark); }
+}
+
+/* Typing indicator */
+.typing-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  animation: bounce 1.2s infinite ease-in-out;
+}
+.typing-dot:nth-child(2) { animation-delay: 0.2s; }
+.typing-dot:nth-child(3) { animation-delay: 0.4s; }
+
+@keyframes bounce {
+  0%, 80%, 100% { transform: scale(0.8); opacity: 0.5; }
+  40%           { transform: scale(1.2); opacity: 1; }
+}

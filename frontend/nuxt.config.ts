@@ -25,7 +25,7 @@ export default defineNuxtConfig({
       meta: [
         { charset: 'utf-8' },
         { name: 'viewport', content: 'width=device-width, initial-scale=1' },
-        { name: 'description', content: 'Simple Chat.' },
+        { name: 'description', content: 'Secure end-to-end encrypted chat' },
         { name: 'robots', content: 'noindex, nofollow' }, // keep off search engines
         { name: 'theme-color', content: '#7C3AED' },
       ],
