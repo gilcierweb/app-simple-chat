@@ -13,6 +13,7 @@ export const useAuth = () => {
   const user = useState<User | null>('auth:user', () => null)
   const loading = ref(false)
   const error = ref<string | null>(null)
+  const { t } = useI18n()
 
   const accessToken = computed(() => {
     if (import.meta.client) return localStorage.getItem('access_token')
@@ -31,7 +32,7 @@ export const useAuth = () => {
       })
       return res
     } catch (e: any) {
-      error.value = e?.data?.message || 'Registration failed'
+      error.value = e?.data?.message || t('auth.errors.registrationFailed')
       throw e
     } finally {
       loading.value = false
@@ -58,7 +59,7 @@ export const useAuth = () => {
 
       await router.push('/chat')
     } catch (e: any) {
-      error.value = e?.data?.message || 'Login failed'
+      error.value = e?.data?.message || t('auth.errors.loginFailed')
       throw e
     } finally {
       loading.value = false
@@ -121,7 +122,7 @@ export const useAuth = () => {
     } catch (e: any) {
       if (e.response?.status === 401) {
         token = await refreshAccessToken()
-        if (!token) throw new Error('Unauthenticated')
+        if (!token) throw new Error(t('auth.errors.unauthenticated'))
         return await makeRequest(token)
       }
       throw e

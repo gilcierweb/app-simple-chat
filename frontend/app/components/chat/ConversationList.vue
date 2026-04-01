@@ -4,8 +4,8 @@
     <div v-if="filtered.length === 0" class="px-4 py-12 text-center">
       <div class="flex flex-col items-center gap-3 text-base-content/60">
         <span class="icon-[tabler--inbox] size-12 opacity-40"></span>
-        <p class="text-sm">{{ search ? 'No conversations found' : 'No conversations yet' }}</p>
-        <p v-if="!search" class="text-xs">Start a new chat to begin messaging</p>
+        <p class="text-sm">{{ search ? t('chat.list.empty.search') : t('chat.list.empty.default') }}</p>
+        <p v-if="!search" class="text-xs">{{ t('chat.list.empty.hint') }}</p>
       </div>
     </div>
 
@@ -41,12 +41,12 @@
           <p class="text-xs text-base-content/70 truncate">
             <span v-if="conv.last_message?.deleted_at" class="italic flex items-center gap-1">
               <span class="icon-[tabler--trash] size-3"></span>
-              Message deleted
+              {{ t('chat.message.deleted') }}
             </span>
             <span v-else-if="conv.last_message?.plaintext" class="text-base-content/70">{{ conv.last_message.plaintext }}</span>
             <span v-else class="text-base-content/50 flex items-center gap-1">
               <span class="icon-[tabler--lock] size-3"></span>
-              Encrypted
+              {{ t('chat.message.encrypted') }}
             </span>
           </p>
           <span
@@ -68,6 +68,7 @@ import { useConversationStore } from '~/stores/conversations'
 const props = defineProps<{ search?: string }>()
 
 const convStore = useConversationStore()
+const { t } = useI18n()
 const activeId = computed(() => convStore.activeConversationId)
 const onlineUsers = ref(new Set<string>())
 
@@ -83,16 +84,18 @@ function convInitial(c: Conversation): string {
 }
 
 function convName(c: Conversation): string {
-  return c.name ?? (c.conversation_type === 'direct' ? 'Direct Message' : 'Group')
+  return c.name ?? (c.conversation_type === 'direct'
+    ? t('chat.common.directMessage')
+    : t('chat.common.group'))
 }
 
 function formatLastActive(iso: string): string {
   const d = new Date(iso)
   const now = new Date()
   const diff = now.getTime() - d.getTime()
-  if (diff < 60_000) return 'now'
-  if (diff < 3_600_000) return Math.floor(diff / 60_000) + 'm'
-  if (diff < 86_400_000) return Math.floor(diff / 3_600_000) + 'h'
+  if (diff < 60_000) return t('chat.list.time.now')
+  if (diff < 3_600_000) return t('chat.list.time.minutes', { count: Math.floor(diff / 60_000) })
+  if (diff < 86_400_000) return t('chat.list.time.hours', { count: Math.floor(diff / 3_600_000) })
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })
 }
 

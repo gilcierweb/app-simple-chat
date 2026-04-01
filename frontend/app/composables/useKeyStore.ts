@@ -91,9 +91,15 @@ export const useKeyStore = () => {
     const iv = crypto.getRandomValues(new Uint8Array(12))
     const encoded = new TextEncoder().encode(plaintext)
     const ct = await crypto.subtle.encrypt({ name: 'AES-GCM', iv }, key, encoded)
+    
+    // Convert Uint8Array to base64 properly
+    const ctBytes = new Uint8Array(ct)
+    const ctString = String.fromCharCode.apply(null, Array.from(ctBytes))
+    const ivString = String.fromCharCode.apply(null, Array.from(iv))
+    
     return {
-      ciphertext: btoa(String.fromCharCode(...new Uint8Array(ct))),
-      iv: btoa(String.fromCharCode(...iv)),
+      ciphertext: btoa(ctString),
+      iv: btoa(ivString),
     }
   }
 
@@ -101,10 +107,26 @@ export const useKeyStore = () => {
    * Decrypt ciphertext with AES-256-GCM.
    */
   async function decrypt(key: CryptoKey, ciphertext: string, iv: string): Promise<string> {
-    const ct = Uint8Array.from(atob(ciphertext), c => c.charCodeAt(0))
-    const ivBytes = Uint8Array.from(atob(iv), c => c.charCodeAt(0))
-    const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBytes }, key, ct)
-    return new TextDecoder().decode(plain)
+    try {
+      // Convert base64 to Uint8Array properly
+      const ctString = atob(ciphertext)
+      const ct = new Uint8Array(ctString.length)
+      for (let i = 0; i < ctString.length; i++) {
+        ct[i] = ctString.charCodeAt(i)
+      }
+      
+      const ivString = atob(iv)
+      const ivBytes = new Uint8Array(ivString.length)
+      for (let i = 0; i < ivString.length; i++) {
+        ivBytes[i] = ivString.charCodeAt(i)
+      }
+      
+      const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBytes }, key, ct)
+      return new TextDecoder().decode(plain)
+    } catch (error) {
+      console.error('Decryption error:', error)
+      throw error
+    }
   }
 
   /**

@@ -8,15 +8,15 @@
         </div>
 
         <!-- Title -->
-        <h3 class="card-title text-text-primary text-xl">Select a conversation</h3>
+        <h3 class="card-title text-text-primary text-xl">{{ t('chat.index.title') }}</h3>
         <p class="text-text-secondary mt-2">
-          Choose an existing chat from the sidebar or start a new one
+          {{ t('chat.index.subtitle') }}
         </p>
 
         <!-- Action -->
         <button class="btn btn-primary btn-soft mt-6" @click="handleNewChat">
           <span class="icon-[lucide--plus] size-4"></span>
-          Start new conversation
+          {{ t('chat.index.startConversation') }}
         </button>
       </div>
     </div>
@@ -24,13 +24,14 @@
     <!-- Security tip -->
     <div class="mt-8 flex items-center gap-2 text-xs text-text-muted">
       <span class="icon-[lucide--lock] size-4 text-primary"></span>
-      <span>All messages are end-to-end encrypted</span>
+      <span>{{ t('chat.index.securityTip') }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'default' })
+const { t } = useI18n()
 
 const authStore = useAuthStore()
 const { authFetch } = useAuth()

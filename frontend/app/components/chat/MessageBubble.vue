@@ -12,32 +12,32 @@
 
     <!-- Header with sender info and time -->
     <div class="chat-header text-base-content">
-      <span v-if="!isOwn" class="font-medium text-sm">{{ senderName }}</span>
-      <time class="text-base-content/50 text-xs ml-1">{{ formatTime(message.created_at) }}</time>
+      <span v-if="!isOwn" class="font-medium">{{ senderName }}</span>
+      <time class="text-base-content/50">{{ formatTime(message.created_at) }}</time>
     </div>
 
     <!-- Chat bubble -->
     <div class="chat-bubble" :class="{ 'opacity-50': message.deleted_at }">
       <!-- Deleted message -->
       <template v-if="message.deleted_at">
-        <span class="italic text-base-content/40">Message deleted</span>
+        <span class="italic text-base-content/40">{{ t('chat.message.deleted') }}</span>
       </template>
 
       <!-- Reply reference -->
       <div v-else-if="message.reply_to_id" class="text-xs text-base-content/60 mb-2 px-2 border-l-2 border-base-300 truncate max-w-full">
-        Replying to message
+        {{ t('chat.message.replyingTo') }}
       </div>
 
       <!-- Text content -->
       <template v-else-if="message.message_type === 'text' || !message.message_type">
-        <span class="whitespace-pre-wrap break-words">{{ message.plaintext || '🔒 Encrypted message' }}</span>
+        <span class="whitespace-pre-wrap break-words">{{ message.plaintext || t('chat.message.encryptedWithIcon') }}</span>
       </template>
 
       <!-- Image -->
       <template v-else-if="message.message_type === 'image'">
         <div class="flex flex-col gap-2">
-          <button class="border-base-content/30 overflow-hidden rounded-md border" aria-label="Image">
-            <img class="w-48 h-auto object-cover" src="https://cdn.flyonui.com/fy-assets/components/card/image-9.png" alt="Shared image" />
+          <button class="border-base-content/30 overflow-hidden rounded-md border" :aria-label="t('chat.message.image')">
+            <img class="w-48 h-auto object-cover" src="https://cdn.flyonui.com/fy-assets/components/card/image-9.png" :alt="t('chat.message.sharedImage')" />
           </button>
         </div>
       </template>
@@ -67,21 +67,19 @@
 
     <!-- Footer with status -->
     <div v-if="isOwn" class="chat-footer text-base-content/50">
-      <div class="flex items-center gap-1 text-xs">
-        {{ statusText }}
-        <span v-if="statusIcon" :class="[statusIcon, statusColor]"></span>
-      </div>
+      {{ statusText }}
+      <span v-if="statusIcon" :class="[statusIcon, statusColor, 'align-bottom']"></span>
     </div>
 
     <!-- Context menu (hover) -->
     <div class="absolute top-0 opacity-0 group-hover:opacity-100 transition-opacity z-10"
          :class="isOwn ? 'left-0 -translate-x-full pr-1' : 'right-0 translate-x-full pl-1'">
       <div class="flex items-center gap-0.5 bg-base-100 shadow rounded-lg p-0.5 border border-base-200">
-        <button class="btn btn-ghost btn-xs btn-square" title="React">😊</button>
-        <button class="btn btn-ghost btn-xs btn-square" title="Reply" @click="$emit('reply', message)">
+        <button class="btn btn-ghost btn-xs btn-square" :title="t('chat.message.react')">😊</button>
+        <button class="btn btn-ghost btn-xs btn-square" :title="t('chat.message.reply')" @click="$emit('reply', message)">
           <span class="icon-[tabler--arrow-back-up] size-4"></span>
         </button>
-        <button v-if="isOwn && !message.deleted_at" class="btn btn-ghost btn-xs btn-square text-error" title="Delete" @click="$emit('delete', message.id)">
+        <button v-if="isOwn && !message.deleted_at" class="btn btn-ghost btn-xs btn-square text-error" :title="t('chat.message.delete')" @click="$emit('delete', message.id)">
           <span class="icon-[tabler--trash] size-4"></span>
         </button>
       </div>
@@ -106,14 +104,15 @@ const emit = defineEmits<{
 
 const senderInitial = computed(() => props.message.sender_id.slice(0, 1).toUpperCase())
 const senderName = computed(() => props.senderName || props.message.sender_id.slice(0, 8))
+const { t } = useI18n()
 
 const statusText = computed(() => {
   switch (props.message.status) {
-    case 'sending': return 'Sending...'
-    case 'sent': return 'Sent'
-    case 'delivered': return 'Delivered'
-    case 'read': return 'Read'
-    case 'error': return 'Failed'
+    case 'sending': return t('chat.status.sending')
+    case 'sent': return t('chat.status.sent')
+    case 'delivered': return t('chat.status.delivered')
+    case 'read': return t('chat.status.read')
+    case 'error': return t('chat.status.failed')
     default: return ''
   }
 })

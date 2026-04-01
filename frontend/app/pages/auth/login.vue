@@ -2,8 +2,8 @@
   <div>
     <!-- Header -->
     <div class="text-center mb-6">
-      <h2 class="font-display text-2xl font-bold text-text-primary">Welcome back</h2>
-      <p class="text-sm text-text-secondary mt-1">Sign in to your secure account</p>
+      <h2 class="font-display text-2xl font-bold text-text-primary">{{ t('auth.login.title') }}</h2>
+      <p class="text-sm text-text-secondary mt-1">{{ t('auth.login.subtitle') }}</p>
     </div>
 
     <!-- Error Alert -->
@@ -17,7 +17,7 @@
       <!-- Email Input -->
       <div class="form-control">
         <label class="label">
-          <span class="label-text text-text-secondary">Email</span>
+          <span class="label-text text-text-secondary">{{ t('auth.common.email') }}</span>
         </label>
         <label class="input-group">
           <span class="input-group-text">
@@ -27,7 +27,7 @@
             v-model="email"
             type="email"
             autocomplete="email"
-            placeholder="you@example.com"
+            :placeholder="t('auth.common.emailPlaceholder')"
             class="input input-filled flex-1"
             :disabled="loading"
             required
@@ -38,9 +38,9 @@
       <!-- Password Input -->
       <div class="form-control">
         <label class="label">
-          <span class="label-text text-text-secondary">Password</span>
+          <span class="label-text text-text-secondary">{{ t('auth.common.password') }}</span>
           <NuxtLink to="/auth/forgot-password" class="label-text-alt link link-primary text-xs">
-            Forgot password?
+            {{ t('auth.login.forgotPassword') }}
           </NuxtLink>
         </label>
         <label class="input-group">
@@ -51,7 +51,7 @@
             v-model="password"
             :type="showPassword ? 'text' : 'password'"
             autocomplete="current-password"
-            placeholder="••••••••"
+            :placeholder="t('auth.common.passwordPlaceholder')"
             class="input input-filled flex-1"
             :disabled="loading"
             required
@@ -69,7 +69,7 @@
       <!-- TOTP Field -->
       <div v-if="needsTotp" class="form-control">
         <label class="label">
-          <span class="label-text text-text-secondary">Authentication code</span>
+          <span class="label-text text-text-secondary">{{ t('auth.login.authCode') }}</span>
         </label>
         <label class="input-group">
           <span class="input-group-text">
@@ -80,7 +80,7 @@
             type="text"
             inputmode="numeric"
             autocomplete="one-time-code"
-            placeholder="000000"
+            :placeholder="t('auth.login.authCodePlaceholder')"
             maxlength="6"
             class="input input-filled flex-1 text-center tracking-[0.5em] font-mono"
             :disabled="loading"
@@ -93,20 +93,20 @@
         <span v-if="loading" class="loading loading-spinner loading-sm"></span>
         <span v-else class="flex items-center gap-2">
           <span class="icon-[lucide--log-in] size-5"></span>
-          Sign in
+          {{ t('auth.login.submit') }}
         </span>
       </button>
     </form>
 
     <!-- Divider -->
-    <div class="divider text-text-muted text-sm my-6">or</div>
+    <div class="divider text-text-muted text-sm my-6">{{ t('auth.common.or') }}</div>
 
     <!-- Register Link -->
     <div class="text-center">
       <p class="text-sm text-text-secondary">
-        Don't have an account?
+        {{ t('auth.login.noAccount') }}
         <NuxtLink to="/auth/register" class="link link-primary font-medium">
-          Create one
+          {{ t('auth.login.createOne') }}
         </NuxtLink>
       </p>
     </div>
@@ -114,13 +114,14 @@
     <!-- Security Badge -->
     <div class="mt-6 flex items-center justify-center gap-2 text-xs text-text-muted">
       <span class="icon-[lucide--shield-check] size-4 text-primary"></span>
-      <span>End-to-end encrypted</span>
+      <span>{{ t('auth.common.e2eBadge') }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
+const { t } = useI18n()
 
 const { login, loading, error } = useAuth()
 

@@ -1,5 +1,5 @@
 <template>
-  <div class="flex flex-col h-dvh">
+  <div class="flex flex-col h-full min-h-0">
     <!-- Chat header -->
     <header class="flex items-center gap-3 px-4 py-3 border-b border-base-300 bg-base-100">
       <div class="avatar">
@@ -40,34 +40,38 @@
     </div>
 
     <!-- Messages area -->
-    <div ref="messagesEl" class="flex-1 overflow-y-auto px-4 py-4 space-y-1">
+    <div ref="messagesEl" class="flex-1 overflow-y-auto min-h-0 px-4 py-4">
       <div v-if="loading" class="flex justify-center py-8">
         <span class="loading loading-spinner loading-md text-primary"></span>
       </div>
 
-      <template v-for="(msg, idx) in displayMessages" :key="msg.id">
-        <!-- Date separator -->
-        <div v-if="showDateSeparator(msg, displayMessages[idx - 1])" class="flex items-center gap-3 my-4">
-          <div class="flex-1 h-px bg-base-300"></div>
-          <span class="text-xs text-base-content/40">{{ formatDate(msg.created_at) }}</span>
-          <div class="flex-1 h-px bg-base-300"></div>
-        </div>
+      <TransitionGroup name="message" tag="div" class="space-y-1">
+        <template v-for="(msg, idx) in displayMessages" :key="msg.id">
+          <!-- Date separator -->
+          <div v-if="showDateSeparator(msg, displayMessages[idx - 1])" class="flex items-center gap-3 my-4">
+            <div class="flex-1 h-px bg-base-300"></div>
+            <span class="text-xs text-base-content/40">{{ formatDate(msg.created_at) }}</span>
+            <div class="flex-1 h-px bg-base-300"></div>
+          </div>
 
-        <MessageBubble
-          :message="msg"
-          :is-own="msg.sender_id === authStore.user?.id"
-          :show-avatar="shouldShowAvatar(msg, displayMessages[idx - 1])"
-          @delete="deleteMessage(msg.id)"
-        />
-      </template>
+          <MessageBubble
+            :message="msg"
+            :is-own="msg.sender_id === authStore.user?.id"
+            :show-avatar="shouldShowAvatar(msg, displayMessages[idx - 1])"
+            @delete="deleteMessage(msg.id)"
+          />
+        </template>
+      </TransitionGroup>
 
-      <!-- Typing indicator -->
-      <div v-if="typingUserIds.length > 0" class="flex items-end gap-2 mt-1">
-        <div class="w-8 h-8 rounded-full bg-base-300 flex-shrink-0"></div>
-        <div class="msg-in px-3 py-2 flex items-center gap-1">
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
-          <span class="typing-dot"></span>
+      <!-- Typing indicator with reserved space -->
+      <div class="h-10 transition-all duration-300 ease-out" :class="{ 'opacity-0': typingUserIds.length === 0, 'opacity-100': typingUserIds.length > 0 }">
+        <div class="flex items-end gap-2">
+          <div class="w-8 h-8 rounded-full bg-base-300 flex-shrink-0"></div>
+          <div class="msg-in px-3 py-2 flex items-center gap-1">
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+            <span class="typing-dot"></span>
+          </div>
         </div>
       </div>
 
@@ -102,6 +106,7 @@ const { authFetch } = useAuth()
 const keyStore = useKeyStore()
 const messageStore = useMessages()
 const ws = useWebSocket()
+const toast = useToast()
 
 const loading = ref(false)
 const showSearch = ref(false)
@@ -110,7 +115,12 @@ const searchResults = ref<Message[]>([])
 const messagesEl = ref<HTMLElement>()
 const bottomEl = ref<HTMLElement>()
 
-const conversation = computed(() => convStore.conversations.find(c => c.id === conversationId))
+const conversation = computed(() => {
+  const conv = convStore.conversations.find(c => c.id === conversationId)
+  console.log('[DEBUG] Computed conversation:', conv, 'for ID:', conversationId)
+  console.log('[DEBUG] All conversations in store:', convStore.conversations)
+  return conv
+})
 const conversationName = computed(() => conversation.value?.name ?? 'Unknown')
 const conversationInitial = computed(() => (conversationName.value[0] ?? '?').toUpperCase())
 const memberCount = computed(() => conversation.value?.members?.length ?? 0)
@@ -155,28 +165,116 @@ async function loadMessages() {
   try {
     // First load from local IndexedDB
     const local = await messageStore.loadLocal(conversationId)
+    console.log('[DEBUG] Loaded local messages:', local.length, 'messages:', local)
+    
+    // Check if local messages have plaintext
+    const hasLocalPlaintext = local.some(msg => msg.plaintext)
+    console.log('[DEBUG] Local messages have plaintext:', hasLocalPlaintext)
+    
     convStore.setMessages(conversationId, local)
 
-    // Then fetch from server and decrypt
-    const remote: Message[] = await authFetch(`/messages/${conversationId}`)
+    // Ensure session key exists before fetching messages
     const peerUserId = conversation.value?.members?.find(m => m.user_id !== authStore.user?.id)?.user_id
+    console.log('[DEBUG] Peer user ID for loadMessages:', peerUserId)
+    if (peerUserId) {
+      console.log('[DEBUG] Ensuring session exists...')
+      
+      // Check if peer has keys
+      const peerBundle = await keyStore.fetchPeerBundle(peerUserId)
+      console.log('[DEBUG] Peer bundle exists:', !!peerBundle)
+      if (!peerBundle) {
+        console.log('[DEBUG] Peer user has not uploaded encryption keys yet')
+        
+        // Show user-friendly notification
+        const peerName = conversation.value?.name || 'This user'
+        const notification = `⚠️ ${peerName} has not set up encryption keys yet. Messages will appear encrypted until they log in again.`
+        
+        setTimeout(() => {
+          toast.warning(notification, { duration: 8000 })
+        }, 1000)
+        
+        // Also add a warning message to the chat
+        const warningMsg = {
+          id: crypto.randomUUID(),
+          conversation_id: conversationId,
+          sender_id: 'system',
+          ciphertext: '',
+          iv: '',
+          message_type: 'text' as any,
+          reply_to_id: null,
+          created_at: new Date().toISOString(),
+          deleted_at: null,
+          plaintext: notification,
+          status: 'delivered' as any,
+        }
+        
+        // Add warning message to local messages
+        const updatedLocal = [...local, warningMsg]
+        convStore.setMessages(conversationId, updatedLocal)
+      }
+      
+      await keyStore.ensureSession(conversationId, peerUserId).catch(console.error)
+    }
+
+    // Then fetch from server and decrypt
+    console.log('[DEBUG] Fetching messages from server...')
+    const remote: Message[] = await authFetch(`/messages/${conversationId}`)
+    console.log('[DEBUG] Fetched remote messages:', remote.length)
     const sessionKey = peerUserId ? await keyStore.getSessionKey(conversationId, peerUserId).catch(() => null) : null
+    console.log('[DEBUG] Session key for decryption:', sessionKey ? 'found' : 'not found')
 
     const decrypted = await Promise.all(
       remote.map(async (msg) => {
-        if (!sessionKey || msg.deleted_at) return msg
+        // Check if we have a decrypted version locally
+        const localMsg = local.find(l => l.id === msg.id)
+        if (localMsg?.plaintext && (!sessionKey || msg.deleted_at)) {
+          console.log('[DEBUG] Using local plaintext for message:', msg.id)
+          return localMsg
+        }
+        
+        if (!sessionKey || msg.deleted_at) {
+          console.log('[DEBUG] Skipping decryption for message:', msg.id, 'sessionKey:', !!sessionKey, 'deleted_at:', msg.deleted_at)
+          return { ...msg, plaintext: '🔒 Encrypted message' }
+        }
         try {
+          console.log('[DEBUG] Decrypting message:', msg.id)
           const plaintext = await keyStore.decrypt(sessionKey, msg.ciphertext, msg.iv)
+          console.log('[DEBUG] Decrypted successfully:', msg.id, 'plaintext:', plaintext.substring(0, 50) + '...')
           return { ...msg, plaintext }
-        } catch {
-          return { ...msg, plaintext: '[Unable to decrypt]' }
+        } catch (err) {
+          console.error('[DEBUG] Decryption failed for message:', msg.id, err)
+          // Fall back to local plaintext if available
+          if (localMsg?.plaintext) {
+            console.log('[DEBUG] Falling back to local plaintext for message:', msg.id)
+            return localMsg
+          }
+          return { ...msg, plaintext: '🔒 Encrypted message' }
         }
       }),
     )
 
+    console.log('[DEBUG] Final decrypted messages:', decrypted.length)
     convStore.setMessages(conversationId, decrypted.reverse())
-    // Persist locally
-    await Promise.all(decrypted.map(m => messageStore.saveLocal(m)))
+    // Persist locally - only save messages with actual plaintext
+    const messagesToSave = decrypted.filter(m => {
+      const hasPlaintext = !!m.plaintext
+      const isNotPlaceholder = m.plaintext !== '🔒 Encrypted message' && m.plaintext !== '[Unable to decrypt]'
+      const isNotWarning = !m.plaintext?.startsWith('⚠️')
+      const isNotSystem = m.sender_id !== 'system'
+      
+      console.log('[DEBUG] Message filter:', m.id, {
+        hasPlaintext,
+        plaintext: m.plaintext?.substring(0, 30),
+        isNotPlaceholder,
+        isNotWarning,
+        isNotSystem,
+        sender_id: m.sender_id
+      })
+      
+      return hasPlaintext && isNotPlaceholder && isNotWarning && isNotSystem
+    })
+    console.log('[DEBUG] Saving', messagesToSave.length, 'messages to local storage')
+    await Promise.all(messagesToSave.map(m => messageStore.saveLocal(m)))
   } catch (e) {
     console.error('Failed to load messages', e)
   } finally {
@@ -187,7 +285,20 @@ async function loadMessages() {
 
 function scrollToBottom(smooth = false) {
   nextTick(() => {
-    bottomEl.value?.scrollIntoView({ behavior: smooth ? 'smooth' : 'instant' })
+    if (!messagesEl.value || !bottomEl.value) return
+    
+    const container = messagesEl.value
+    const target = bottomEl.value
+    const targetPosition = target.offsetTop - container.offsetTop + target.offsetHeight
+    
+    if (smooth) {
+      container.scrollTo({
+        top: targetPosition,
+        behavior: 'smooth'
+      })
+    } else {
+      container.scrollTop = targetPosition
+    }
   })
 }
 
@@ -214,9 +325,25 @@ async function deleteMessage(messageId: string) {
 let unsubscribeWs: (() => void) | null = null
 
 onMounted(async () => {
+  console.log('[DEBUG] Component mounted, conversationId:', conversationId)
+  console.log('[DEBUG] Auth user on mount:', authStore.user)
+  console.log('[DEBUG] Conversations in store on mount:', convStore.conversations)
+  
+  // Load conversations if store is empty
+  if (convStore.conversations.length === 0) {
+    console.log('[DEBUG] Loading conversations from server...')
+    try {
+      const conversations = await authFetch('/conversations')
+      convStore.setConversations(conversations)
+      console.log('[DEBUG] Loaded conversations:', conversations)
+    } catch (e) {
+      console.error('[DEBUG] Failed to load conversations:', e)
+    }
+  }
+  
   await loadMessages()
   
-  // Join the conversation room for real-time updates
+  // Join conversation room for real-time updates
   ws.joinRoom(conversationId)
 
   unsubscribeWs = ws.on(async (event) => {
@@ -280,3 +407,37 @@ onUnmounted(() => {
   unsubscribeWs?.()
 })
 </script>
+
+<style scoped>
+/* Message enter animation */
+.message-enter-active {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.message-leave-active {
+  transition: all 0.2s ease-out;
+}
+
+.message-enter-from,
+.message-leave-to {
+  opacity: 0;
+  transform: translateY(10px);
+}
+
+/* Typing dots animation */
+.typing-dot {
+  width: 6px;
+  height: 6px;
+  background: currentColor;
+  border-radius: 50%;
+  animation: typing-bounce 1.4s infinite ease-in-out both;
+}
+
+.typing-dot:nth-child(1) { animation-delay: -0.32s; }
+.typing-dot:nth-child(2) { animation-delay: -0.16s; }
+
+@keyframes typing-bounce {
+  0%, 80%, 100% { transform: scale(0.6); opacity: 0.4; }
+  40% { transform: scale(1); opacity: 1; }
+}
+</style>

@@ -1,1 +1,188 @@
-{}
+{
+  "toast": {
+    "close": "Close notification"
+  },
+  "layout": {
+    "auth": {
+      "footer": "Mensageria com criptografia ponta a ponta"
+    },
+    "default": {
+      "toggleNavigation": "Alternar navegação",
+      "searchPlaceholder": "Buscar...",
+      "newChat": "Novo chat",
+      "settings": "Configurações",
+      "logout": "Sair"
+    }
+  },
+  "auth": {
+    "common": {
+      "email": "E-mail",
+      "emailPlaceholder": "voce{'@'}exemplo.com",
+      "password": "Senha",
+      "passwordPlaceholder": "••••••••",
+      "or": "ou",
+      "e2eBadge": "Criptografia ponta a ponta"
+    },
+    "errors": {
+      "registrationFailed": "Falha no cadastro",
+      "loginFailed": "Falha no login",
+      "unauthenticated": "Não autenticado"
+    },
+    "login": {
+      "title": "Bem-vindo de volta",
+      "subtitle": "Entre na sua conta segura",
+      "forgotPassword": "Esqueceu a senha?",
+      "authCode": "Código de autenticação",
+      "authCodePlaceholder": "000000",
+      "submit": "Entrar",
+      "noAccount": "Não tem uma conta?",
+      "createOne": "Crie uma"
+    },
+    "register": {
+      "title": "Criar conta",
+      "subtitle": "Entre na rede de mensagens segura",
+      "successTitle": "Conta criada com sucesso!",
+      "successHint": "Verifique seu e-mail para confirmar a conta.",
+      "passwordPlaceholder": "Mín. 8 caracteres",
+      "confirmPassword": "Confirmar senha",
+      "confirmPasswordPlaceholder": "Repita a senha",
+      "passwordMismatch": "As senhas não coincidem",
+      "submit": "Criar conta",
+      "hasAccount": "Já tem uma conta?",
+      "signIn": "Entrar",
+      "strength": {
+        "tooShort": "Muito curta",
+        "weak": "Fraca",
+        "fair": "Razoável",
+        "good": "Boa",
+        "strong": "Forte"
+      }
+    },
+    "confirm": {
+      "loading": "Confirmando seu e-mail...",
+      "successTitle": "E-mail confirmado!",
+      "successHint": "Sua conta está pronta. Agora você já pode entrar.",
+      "signIn": "Entrar",
+      "errorTitle": "Falha na confirmação",
+      "backToLogin": "Voltar ao login",
+      "missingToken": "Token de confirmação ausente",
+      "invalidLink": "Link de confirmação inválido ou expirado"
+    }
+  },
+  "settings": {
+    "title": "Configurações",
+    "profile": {
+      "title": "Perfil",
+      "firstName": "Nome",
+      "firstNamePlaceholder": "João",
+      "lastName": "Sobrenome",
+      "lastNamePlaceholder": "Silva",
+      "nickname": "Apelido",
+      "nicknamePlaceholder": "{'@'}usuario",
+      "bio": "Bio",
+      "bioPlaceholder": "Sobre você...",
+      "save": "Salvar perfil"
+    },
+    "security": {
+      "title": "Segurança",
+      "twoFactor": "Autenticação de dois fatores",
+      "twoFactorHint": "Adicione uma camada extra com um app TOTP",
+      "enabled": "Ativado",
+      "disabled": "Desativado",
+      "manage": "Gerenciar",
+      "enable": "Ativar",
+      "activeSessions": "Sessões ativas",
+      "activeSessionsHint": "Dispositivos em que você está logado",
+      "view": "Ver",
+      "encryptionKeys": "Chaves de criptografia",
+      "encryptionKeysHint": "Veja seu número de segurança / verifique identidade"
+    },
+    "danger": {
+      "title": "Zona de risco",
+      "signOut": "Sair"
+    }
+  },
+  "chat": {
+    "common": {
+      "directMessage": "Mensagem direta",
+      "group": "Grupo",
+      "unknown": "Desconhecido"
+    },
+    "index": {
+      "title": "Selecione uma conversa",
+      "subtitle": "Escolha um chat existente na barra lateral ou inicie um novo",
+      "startConversation": "Iniciar nova conversa",
+      "securityTip": "Todas as mensagens têm criptografia ponta a ponta"
+    },
+    "list": {
+      "empty": {
+        "search": "Nenhuma conversa encontrada",
+        "default": "Ainda não há conversas",
+        "hint": "Inicie um novo chat para começar a conversar"
+      },
+      "time": {
+        "now": "agora",
+        "minutes": "{count}m",
+        "hours": "{count}h"
+      }
+    },
+    "conversation": {
+      "members": "{count} membros",
+      "searchMessages": "Buscar mensagens",
+      "info": "Informações da conversa",
+      "searchPlaceholder": "Buscar nesta conversa...",
+      "typingOne": "digitando...",
+      "typingMany": "{count} pessoas digitando...",
+      "today": "Hoje",
+      "yesterday": "Ontem",
+      "thisUser": "Este usuário",
+      "peerNoKeysNotification": "⚠️ {peerName} ainda não configurou as chaves de criptografia. As mensagens aparecerão criptografadas até ele entrar novamente."
+    },
+    "input": {
+      "attachFile": "Anexar arquivo",
+      "placeholder": "Digite uma mensagem...",
+      "emoji": "Emoji",
+      "e2eNotice": "Criptografia ponta a ponta",
+      "errors": {
+        "cannotFindPeer": "Não foi possível encontrar o usuário da conversa",
+        "peerNoKeys": "O outro usuário ainda não configurou as chaves de criptografia. Peça para ele entrar novamente e atualizar a página.",
+        "needPeerBundle": "É necessário o pacote de chaves do usuário para criar uma nova sessão"
+      }
+    },
+    "newModal": {
+      "title": "Nova conversa",
+      "addByEmail": "Adicionar por e-mail",
+      "emailPlaceholder": "contato{'@'}exemplo.com",
+      "startConversation": "Iniciar conversa",
+      "cancel": "Cancelar",
+      "errors": {
+        "invalidEmail": "Endereço de e-mail inválido",
+        "userNotFound": "Usuário não encontrado",
+        "selectUserFirst": "Selecione um usuário primeiro",
+        "noUserSelected": "Nenhum usuário selecionado",
+        "createFailed": "Falha ao criar conversa"
+      }
+    },
+    "status": {
+      "sending": "Enviando...",
+      "sent": "Enviado",
+      "delivered": "Entregue",
+      "read": "Lida",
+      "failed": "Falhou"
+    },
+    "message": {
+      "deleted": "Mensagem apagada",
+      "replyingTo": "Respondendo mensagem",
+      "encrypted": "Criptografada",
+      "encryptedWithIcon": "🔒 Mensagem criptografada",
+      "unableToDecrypt": "[Não foi possível descriptografar]",
+      "image": "Imagem",
+      "sharedImage": "Imagem compartilhada",
+      "photo": "📷 Foto",
+      "file": "📁 Arquivo",
+      "react": "Reagir",
+      "reply": "Responder",
+      "delete": "Excluir"
+    }
+  }
+}

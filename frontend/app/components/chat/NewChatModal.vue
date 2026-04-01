@@ -2,20 +2,20 @@
   <div class="modal-overlay" @click.self="closeModal">
     <div class="modal-box">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="text-xl font-bold">New conversation</h3>
+        <h3 class="text-xl font-bold">{{ t('chat.newModal.title') }}</h3>
         <button class="btn btn-ghost btn-sm btn-square" @click="closeModal">
           <span class="icon-[lucide--x] size-5"></span>
         </button>
       </div>
 
       <div class="form-control mb-4">
-        <label class="label"><span class="label-text">Add by email</span></label>
+        <label class="label"><span class="label-text">{{ t('chat.newModal.addByEmail') }}</span></label>
         <div class="input input-bordered flex items-center gap-2 p-0">
           <span class="icon-[tabler--mail] text-base-content/70 ms-3 size-5 shrink-0"></span>
           <input
             v-model="emailInput"
             type="email"
-            placeholder="contact@example.com"
+            :placeholder="t('chat.newModal.emailPlaceholder')"
             class="grow bg-transparent border-none focus:ring-0 py-2"
             @keyup.enter="addEmail"
           />
@@ -47,10 +47,10 @@
           <span v-if="creating" class="loading loading-spinner loading-xs"></span>
           <span v-else class="flex items-center gap-1">
             <span class="icon-[tabler--message-circle-plus] size-4"></span>
-            Start conversation
+            {{ t('chat.newModal.startConversation') }}
           </span>
         </button>
-        <button class="btn btn-ghost btn-sm" @click="closeModal">Cancel</button>
+        <button class="btn btn-ghost btn-sm" @click="closeModal">{{ t('chat.newModal.cancel') }}</button>
       </div>
     </div>
     <div class="modal-backdrop" @click="closeModal"></div>
@@ -62,6 +62,7 @@ const emit = defineEmits(['close'])
 const { authFetch } = useAuth()
 const router = useRouter()
 const convStore = useConversationStore()
+const { t } = useI18n()
 
 const emailInput = ref('')
 const selectedEmail = ref('')
@@ -73,7 +74,7 @@ const errorMessage = ref('')
 async function addEmail() {
   const email = emailInput.value.trim()
   if (!email || !email.includes('@')) {
-    errorMessage.value = 'Invalid email address'
+    errorMessage.value = t('chat.newModal.errors.invalidEmail')
     return
   }
   
@@ -88,7 +89,7 @@ async function addEmail() {
       selectedUserId.value = user.user_id
     }
   } catch (e: any) {
-    errorMessage.value = e.data?.message || e.message || 'User not found'
+    errorMessage.value = e.data?.message || e.message || t('chat.newModal.errors.userNotFound')
   } finally {
     loading.value = false
   }
@@ -100,7 +101,7 @@ function closeModal() {
 
 async function handleStartConversation() {
   if (!selectedUserId.value) {
-    errorMessage.value = 'Please select a user first'
+    errorMessage.value = t('chat.newModal.errors.selectUserFirst')
     return
   }
   await createConversation()
@@ -108,7 +109,7 @@ async function handleStartConversation() {
 
 async function createConversation() {
   if (!selectedUserId.value) {
-    errorMessage.value = 'No user selected'
+    errorMessage.value = t('chat.newModal.errors.noUserSelected')
     return
   }
   
@@ -127,7 +128,7 @@ async function createConversation() {
     emit('close')
     await router.push(`/conversations/${conv.id}`)
   } catch (e: any) {
-    errorMessage.value = e.data?.message || e.message || 'Failed to create conversation'
+    errorMessage.value = e.data?.message || e.message || t('chat.newModal.errors.createFailed')
   } finally {
     creating.value = false
   }

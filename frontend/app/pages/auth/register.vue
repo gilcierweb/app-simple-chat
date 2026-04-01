@@ -2,16 +2,16 @@
   <div>
     <!-- Header -->
     <div class="text-center mb-6">
-      <h2 class="font-display text-2xl font-bold text-text-primary">Create account</h2>
-      <p class="text-sm text-text-secondary mt-1">Join the secure messaging network</p>
+      <h2 class="font-display text-2xl font-bold text-text-primary">{{ t('auth.register.title') }}</h2>
+      <p class="text-sm text-text-secondary mt-1">{{ t('auth.register.subtitle') }}</p>
     </div>
 
     <!-- Success Alert -->
     <div v-if="success" class="alert alert-soft alert-success mb-4">
       <span class="icon-[lucide--check-circle] size-5"></span>
       <div>
-        <p class="font-medium text-sm">Account created successfully!</p>
-        <p class="text-xs opacity-80">Check your email to confirm your account.</p>
+        <p class="font-medium text-sm">{{ t('auth.register.successTitle') }}</p>
+        <p class="text-xs opacity-80">{{ t('auth.register.successHint') }}</p>
       </div>
     </div>
 
@@ -26,7 +26,7 @@
       <!-- Email Input -->
       <div class="form-control">
         <label class="label">
-          <span class="label-text text-text-secondary">Email</span>
+          <span class="label-text text-text-secondary">{{ t('auth.common.email') }}</span>
         </label>
         <label class="input-group">
           <span class="input-group-text">
@@ -36,7 +36,7 @@
             v-model="email"
             type="email"
             autocomplete="email"
-            placeholder="you@example.com"
+            :placeholder="t('auth.common.emailPlaceholder')"
             class="input input-filled flex-1"
             :disabled="loading"
             required
@@ -47,7 +47,7 @@
       <!-- Password Input -->
       <div class="form-control">
         <label class="label">
-          <span class="label-text text-text-secondary">Password</span>
+          <span class="label-text text-text-secondary">{{ t('auth.common.password') }}</span>
         </label>
         <label class="input-group">
           <span class="input-group-text">
@@ -57,7 +57,7 @@
             v-model="password"
             type="password"
             autocomplete="new-password"
-            placeholder="Min. 8 characters"
+            :placeholder="t('auth.register.passwordPlaceholder')"
             class="input input-filled flex-1"
             :disabled="loading"
             minlength="8"
@@ -79,7 +79,7 @@
       <!-- Confirm Password Input -->
       <div class="form-control">
         <label class="label">
-          <span class="label-text text-text-secondary">Confirm password</span>
+          <span class="label-text text-text-secondary">{{ t('auth.register.confirmPassword') }}</span>
         </label>
         <label class="input-group">
           <span class="input-group-text">
@@ -89,7 +89,7 @@
             v-model="confirmPassword"
             type="password"
             autocomplete="new-password"
-            placeholder="Repeat password"
+            :placeholder="t('auth.register.confirmPasswordPlaceholder')"
             class="input input-filled flex-1"
             :class="{ 'input-error': confirmPassword && confirmPassword !== password }"
             :disabled="loading"
@@ -98,7 +98,7 @@
         </label>
         <p v-if="confirmPassword && confirmPassword !== password" class="text-xs text-error mt-1 flex items-center gap-1">
           <span class="icon-[lucide--alert-circle] size-3"></span>
-          Passwords do not match
+          {{ t('auth.register.passwordMismatch') }}
         </p>
       </div>
 
@@ -111,20 +111,20 @@
         <span v-if="loading" class="loading loading-spinner loading-sm"></span>
         <span v-else class="flex items-center gap-2">
           <span class="icon-[lucide--user-plus] size-5"></span>
-          Create account
+          {{ t('auth.register.submit') }}
         </span>
       </button>
     </form>
 
     <!-- Divider -->
-    <div class="divider text-text-muted text-sm my-6">or</div>
+    <div class="divider text-text-muted text-sm my-6">{{ t('auth.common.or') }}</div>
 
     <!-- Login Link -->
     <div class="text-center">
       <p class="text-sm text-text-secondary">
-        Already have an account?
+        {{ t('auth.register.hasAccount') }}
         <NuxtLink to="/auth/login" class="link link-primary font-medium">
-          Sign in
+          {{ t('auth.register.signIn') }}
         </NuxtLink>
       </p>
     </div>
@@ -132,13 +132,14 @@
     <!-- Security Badge -->
     <div class="mt-6 flex items-center justify-center gap-2 text-xs text-text-muted">
       <span class="icon-[lucide--shield-check] size-4 text-primary"></span>
-      <span>End-to-end encrypted</span>
+      <span>{{ t('auth.common.e2eBadge') }}</span>
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
 definePageMeta({ layout: 'auth' })
+const { t } = useI18n()
 
 const { register, loading, error } = useAuth()
 
@@ -160,7 +161,13 @@ const strength = computed(() => {
 
 const strengthLabel = computed(() => {
   if (!password.value) return ''
-  return ['Too short', 'Weak', 'Fair', 'Good', 'Strong'][strength.value]
+  return [
+    t('auth.register.strength.tooShort'),
+    t('auth.register.strength.weak'),
+    t('auth.register.strength.fair'),
+    t('auth.register.strength.good'),
+    t('auth.register.strength.strong'),
+  ][strength.value]
 })
 
 function strengthColor(n: number) {

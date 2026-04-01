@@ -18,8 +18,12 @@
 
       <!-- Footer -->
       <p class="text-center text-sm text-text-muted mt-6">
-        End-to-end encrypted messaging
+        {{ t('layout.auth.footer') }}
       </p>
     </div>
   </div>
 </template>
+
+<script setup lang="ts">
+const { t } = useI18n()
+</script>
