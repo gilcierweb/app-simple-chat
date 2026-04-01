@@ -1,7 +1,7 @@
-use std::sync::Arc;
-use actix_web::{web, HttpResponse};
-use uuid::Uuid;
+use actix_web::{HttpResponse, web};
 use rust_i18n::t;
+use std::sync::Arc;
+use uuid::Uuid;
 
 use crate::repositories::traits::IRepository;
 

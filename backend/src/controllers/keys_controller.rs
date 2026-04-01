@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use diesel::prelude::*;
 use uuid::Uuid;
 
+use crate::db::schema::user_keys;
 use crate::errors::AppError;
 use crate::middleware::auth::AuthUser;
+use crate::models::user_key::{NewUserKey, UserKey};
 use crate::repositories::container::AppContainer;
-use crate::models::user_key::{UserKey, NewUserKey};
-use crate::db::schema::user_keys;
 
 #[derive(Debug, serde::Deserialize)]
 pub struct UploadKeysRequest {
@@ -44,14 +44,17 @@ pub async fn upload_keys(
     let signed_prekey = body.signed_prekey.clone();
     let one_time_prekeys = body.one_time_prekeys.clone();
 
-    container.run(move |conn| {
-        use diesel::ExpressionMethods;
-        let target_user_id = user_id;
-        diesel::delete(user_keys::table)
-            .filter(user_keys::user_id.eq(target_user_id))
-            .filter(user_keys::key_type.ne(3i32))
-            .execute(conn)
-    }).await.map_err(AppError::Database)?;
+    container
+        .run(move |conn| {
+            use diesel::ExpressionMethods;
+            let target_user_id = user_id;
+            diesel::delete(user_keys::table)
+                .filter(user_keys::user_id.eq(target_user_id))
+                .filter(user_keys::key_type.ne(3i32))
+                .execute(conn)
+        })
+        .await
+        .map_err(AppError::Database)?;
 
     let identity = NewUserKey {
         id: Uuid::new_v4(),
@@ -64,11 +67,14 @@ pub async fn upload_keys(
         expires_at: None,
         used_at: None,
     };
-    container.run(move |conn| {
-        diesel::insert_into(user_keys::table)
-            .values(&identity)
-            .execute(conn)
-    }).await.map_err(AppError::Database)?;
+    container
+        .run(move |conn| {
+            diesel::insert_into(user_keys::table)
+                .values(&identity)
+                .execute(conn)
+        })
+        .await
+        .map_err(AppError::Database)?;
 
     let spk = NewUserKey {
         id: Uuid::new_v4(),
@@ -81,11 +87,14 @@ pub async fn upload_keys(
         expires_at: Some(chrono::Utc::now() + chrono::Duration::days(7)),
         used_at: None,
     };
-    container.run(move |conn| {
-        diesel::insert_into(user_keys::table)
-            .values(&spk)
-            .execute(conn)
-    }).await.map_err(AppError::Database)?;
+    container
+        .run(move |conn| {
+            diesel::insert_into(user_keys::table)
+                .values(&spk)
+                .execute(conn)
+        })
+        .await
+        .map_err(AppError::Database)?;
 
     for otpk in one_time_prekeys {
         let key = NewUserKey {
@@ -99,11 +108,14 @@ pub async fn upload_keys(
             expires_at: None,
             used_at: None,
         };
-        container.run(move |conn| {
-            diesel::insert_into(user_keys::table)
-                .values(&key)
-                .execute(conn)
-        }).await.map_err(AppError::Database)?;
+        container
+            .run(move |conn| {
+                diesel::insert_into(user_keys::table)
+                    .values(&key)
+                    .execute(conn)
+            })
+            .await
+            .map_err(AppError::Database)?;
     }
 
     tracing::info!("Keys uploaded for user");
@@ -121,44 +133,56 @@ pub async fn get_prekey_bundle(
 ) -> Result<HttpResponse, AppError> {
     let target_user_id = path.into_inner();
 
-    let identity_key: UserKey = container.run(move |conn| {
-        use diesel::{ExpressionMethods, OptionalExtension};
-        user_keys::table
-            .filter(user_keys::user_id.eq(target_user_id))
-            .filter(user_keys::key_type.eq(1i32))
-            .first(conn)
-            .optional()
-    }).await.map_err(AppError::Database)?
-    .ok_or_else(|| AppError::NotFound("User keys not found".to_string()))?;
+    let identity_key: UserKey = container
+        .run(move |conn| {
+            use diesel::{ExpressionMethods, OptionalExtension};
+            user_keys::table
+                .filter(user_keys::user_id.eq(target_user_id))
+                .filter(user_keys::key_type.eq(1i32))
+                .first(conn)
+                .optional()
+        })
+        .await
+        .map_err(AppError::Database)?
+        .ok_or_else(|| AppError::NotFound("User keys not found".to_string()))?;
 
-    let signed_prekey: UserKey = container.run(move |conn| {
-        use diesel::ExpressionMethods;
-        user_keys::table
-            .filter(user_keys::user_id.eq(target_user_id))
-            .filter(user_keys::key_type.eq(2i32))
-            .order(user_keys::created_at.desc())
-            .first(conn)
-    }).await.map_err(AppError::Database)?;
+    let signed_prekey: UserKey = container
+        .run(move |conn| {
+            use diesel::ExpressionMethods;
+            user_keys::table
+                .filter(user_keys::user_id.eq(target_user_id))
+                .filter(user_keys::key_type.eq(2i32))
+                .order(user_keys::created_at.desc())
+                .first(conn)
+        })
+        .await
+        .map_err(AppError::Database)?;
 
-    let otpk: Option<UserKey> = container.run(move |conn| {
-        use diesel::{ExpressionMethods, OptionalExtension};
-        user_keys::table
-            .filter(user_keys::user_id.eq(target_user_id))
-            .filter(user_keys::key_type.eq(3i32))
-            .filter(user_keys::used_at.is_null())
-            .first(conn)
-            .optional()
-    }).await.map_err(AppError::Database)?;
+    let otpk: Option<UserKey> = container
+        .run(move |conn| {
+            use diesel::{ExpressionMethods, OptionalExtension};
+            user_keys::table
+                .filter(user_keys::user_id.eq(target_user_id))
+                .filter(user_keys::key_type.eq(3i32))
+                .filter(user_keys::used_at.is_null())
+                .first(conn)
+                .optional()
+        })
+        .await
+        .map_err(AppError::Database)?;
 
     let (otpk_key, otpk_id) = if let Some(k) = otpk {
         let key_id = k.id;
         let key_public = k.public_key.clone();
-        container.run(move |conn| {
-            use diesel::ExpressionMethods;
-            diesel::update(user_keys::table.find(key_id))
-                .set(user_keys::used_at.eq(Some(chrono::Utc::now())))
-                .execute(conn)
-        }).await.map_err(AppError::Database)?;
+        container
+            .run(move |conn| {
+                use diesel::ExpressionMethods;
+                diesel::update(user_keys::table.find(key_id))
+                    .set(user_keys::used_at.eq(Some(chrono::Utc::now())))
+                    .execute(conn)
+            })
+            .await
+            .map_err(AppError::Database)?;
         (Some(key_public), Some(k.id))
     } else {
         (None, None)

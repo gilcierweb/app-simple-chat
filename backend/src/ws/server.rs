@@ -105,21 +105,28 @@ impl WsState {
     }
 
     pub fn broadcast_to_room(&self, room: &str, message: WsMessage) {
-        tracing::info!(room = room, msg_type = message.msg_type, "Broadcasting to room");
+        tracing::info!(
+            room = room,
+            msg_type = message.msg_type,
+            "Broadcasting to room"
+        );
         let conns = self.connections.lock().unwrap();
         tracing::info!("Active connections: {}", conns.len());
-        
-        let ws_msg = WsMessage::new("new_message", serde_json::json!({
-            "type": "new_message",
-            "conversation_id": room,
-            "message_id": message.payload.get("message_id").and_then(|v| v.as_str()).unwrap_or_default(),
-            "sender_id": message.payload.get("sender_id").and_then(|v| v.as_str()).unwrap_or_default(),
-            "ciphertext": message.payload.get("ciphertext").and_then(|v| v.as_str()).unwrap_or_default(),
-            "iv": message.payload.get("iv").and_then(|v| v.as_str()).unwrap_or_default(),
-            "message_type": message.payload.get("message_type").and_then(|v| v.as_str()).unwrap_or_default(),
-            "reply_to_id": message.payload.get("reply_to_id").and_then(|v| v.as_str()),
-            "created_at": message.payload.get("created_at").and_then(|v| v.as_str()).unwrap_or_default(),
-        }));
+
+        let ws_msg = WsMessage::new(
+            "new_message",
+            serde_json::json!({
+                "type": "new_message",
+                "conversation_id": room,
+                "message_id": message.payload.get("message_id").and_then(|v| v.as_str()).unwrap_or_default(),
+                "sender_id": message.payload.get("sender_id").and_then(|v| v.as_str()).unwrap_or_default(),
+                "ciphertext": message.payload.get("ciphertext").and_then(|v| v.as_str()).unwrap_or_default(),
+                "iv": message.payload.get("iv").and_then(|v| v.as_str()).unwrap_or_default(),
+                "message_type": message.payload.get("message_type").and_then(|v| v.as_str()).unwrap_or_default(),
+                "reply_to_id": message.payload.get("reply_to_id").and_then(|v| v.as_str()),
+                "created_at": message.payload.get("created_at").and_then(|v| v.as_str()).unwrap_or_default(),
+            }),
+        );
         for (_, info) in conns.iter() {
             if info.room.as_ref() == Some(&room.to_string()) {
                 tracing::info!("Sending to connection in room: {}", room);
@@ -235,7 +242,8 @@ impl WsMessage {
             "message_type": self.payload.get("message_type").cloned(),
             "reply_to_id": self.payload.get("reply_to_id").cloned(),
             "created_at": self.payload.get("created_at").cloned(),
-        }).to_string()
+        })
+        .to_string()
     }
 
     pub fn chat(content: &str, sender: &str) -> Self {

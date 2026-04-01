@@ -1,12 +1,12 @@
 use async_trait::async_trait;
-use uuid::Uuid;
-use diesel::{RunQueryDsl, OptionalExtension};
 use chrono::Utc;
+use diesel::{OptionalExtension, RunQueryDsl};
+use uuid::Uuid;
 
+use crate::db::schema::messages;
+use crate::models::message::{Message, NewMessage};
 use crate::repositories::base::BaseRepo;
 use crate::repositories::conversations_repository::IMessageRepository;
-use crate::models::message::{Message, NewMessage};
-use crate::db::schema::messages;
 
 #[async_trait::async_trait]
 impl IMessageRepository for BaseRepo {
@@ -36,7 +36,8 @@ impl IMessageRepository for BaseRepo {
             diesel::insert_into(messages::table)
                 .values(&new_msg)
                 .get_result(conn)
-        }).await
+        })
+        .await
     }
 
     async fn find_by_conversation(
@@ -45,7 +46,7 @@ impl IMessageRepository for BaseRepo {
         before: Option<Uuid>,
         limit: i64,
     ) -> diesel::QueryResult<Vec<Message>> {
-        use diesel::{QueryDsl, ExpressionMethods, OptionalExtension};
+        use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
 
         let before_ts = if let Some(before_id) = before {
             Some(before_id)
@@ -68,18 +69,18 @@ impl IMessageRepository for BaseRepo {
             }
 
             query.load(conn)
-        }).await
+        })
+        .await
     }
 
     async fn find_by_id(&self, id: Uuid) -> diesel::QueryResult<Option<Message>> {
         use diesel::QueryDsl;
-        self.run(move |conn| {
-            messages::table.find(id).first(conn).optional()
-        }).await
+        self.run(move |conn| messages::table.find(id).first(conn).optional())
+            .await
     }
 
     async fn soft_delete(&self, id: Uuid) -> diesel::QueryResult<()> {
-        use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl};
+        use diesel::{ExpressionMethods, QueryDsl, RunQueryDsl};
         self.run(move |conn| {
             diesel::update(messages::table.find(id))
                 .set((
@@ -87,12 +88,18 @@ impl IMessageRepository for BaseRepo {
                     messages::deleted_at.eq(Some(Utc::now())),
                 ))
                 .execute(conn)
-        }).await?;
+        })
+        .await?;
         Ok(())
     }
 
-    async fn update_receipt(&self, message_id: Uuid, user_id: Uuid, status: i32) -> diesel::QueryResult<()> {
-        use diesel::{QueryDsl, ExpressionMethods, RunQueryDsl, Insertable};
+    async fn update_receipt(
+        &self,
+        message_id: Uuid,
+        user_id: Uuid,
+        status: i32,
+    ) -> diesel::QueryResult<()> {
+        use diesel::{ExpressionMethods, Insertable, QueryDsl, RunQueryDsl};
 
         let now = Utc::now();
 
@@ -113,10 +120,15 @@ impl IMessageRepository for BaseRepo {
                 .do_update()
                 .set((
                     crate::db::schema::message_receipts::status.eq(status),
-                    crate::db::schema::message_receipts::read_at.eq(if status == 2 { Some(now) } else { None }),
+                    crate::db::schema::message_receipts::read_at.eq(if status == 2 {
+                        Some(now)
+                    } else {
+                        None
+                    }),
                 ))
                 .execute(conn)
-        }).await?;
+        })
+        .await?;
         Ok(())
     }
 }

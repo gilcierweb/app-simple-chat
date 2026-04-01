@@ -1,13 +1,9 @@
 #![allow(dead_code)]
 
-use actix_web::{web, HttpResponse};
+use actix_web::{HttpResponse, web};
 use uuid::Uuid;
 
-use crate::{
-    errors::AppError,
-    middleware::auth::AuthUser,
-    repositories::container::AppContainer,
-};
+use crate::{errors::AppError, middleware::auth::AuthUser, repositories::container::AppContainer};
 
 #[derive(serde::Serialize)]
 pub struct ProfileResponse {
@@ -34,8 +30,11 @@ pub async fn get_profile(
     container: web::Data<AppContainer>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = user.claims().sub;
-    
-    let profile = container.profiles.find_by_user_id(&user_id).await
+
+    let profile = container
+        .profiles
+        .find_by_user_id(&user_id)
+        .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::NotFound("Profile not found".to_string()))?;
 
@@ -58,7 +57,7 @@ pub async fn update_profile(
     container: web::Data<AppContainer>,
 ) -> Result<HttpResponse, AppError> {
     let user_id = user.claims().sub;
-    
+
     let new_profile = crate::models::profile::NewProfile {
         user_id,
         first_name_enc: None,
@@ -71,8 +70,11 @@ pub async fn update_profile(
         status: true,
         social_network: serde_json::json!({}),
     };
-    
-    let _ = container.profiles.update(&user_id, &new_profile).await
+
+    let _ = container
+        .profiles
+        .update(&user_id, &new_profile)
+        .await
         .map_err(AppError::Database)?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({"message": "Profile updated"})))

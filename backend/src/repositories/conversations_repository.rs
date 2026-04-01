@@ -10,7 +10,11 @@ use crate::models::conversation::{Conversation, NewConversation};
 pub trait IConversationRepository: Send + Sync {
     async fn create(&self, item: &NewConversation) -> QueryResult<Conversation>;
     async fn find_by_user(&self, user_id: Uuid) -> QueryResult<Vec<Conversation>>;
-    async fn find_existing_direct_conversation(&self, user1_id: Uuid, user2_id: Uuid) -> QueryResult<Option<Conversation>>;
+    async fn find_existing_direct_conversation(
+        &self,
+        user1_id: Uuid,
+        user2_id: Uuid,
+    ) -> QueryResult<Option<Conversation>>;
 }
 
 use crate::models::conversation_member::{ConversationMember, NewConversationMember};
@@ -18,8 +22,15 @@ use crate::models::conversation_member::{ConversationMember, NewConversationMemb
 #[async_trait]
 pub trait IConversationMemberRepository: Send + Sync {
     async fn create(&self, item: &NewConversationMember) -> QueryResult<ConversationMember>;
-    async fn find_by_conversation(&self, conversation_id: Uuid) -> QueryResult<Vec<ConversationMember>>;
-    async fn find(&self, conversation_id: Uuid, user_id: Uuid) -> QueryResult<Option<ConversationMember>>;
+    async fn find_by_conversation(
+        &self,
+        conversation_id: Uuid,
+    ) -> QueryResult<Vec<ConversationMember>>;
+    async fn find(
+        &self,
+        conversation_id: Uuid,
+        user_id: Uuid,
+    ) -> QueryResult<Option<ConversationMember>>;
 }
 
 use crate::models::message::{Message, NewMessage};
@@ -43,5 +54,6 @@ pub trait IMessageRepository: Send + Sync {
     ) -> QueryResult<Vec<Message>>;
     async fn find_by_id(&self, id: Uuid) -> QueryResult<Option<Message>>;
     async fn soft_delete(&self, id: Uuid) -> QueryResult<()>;
-    async fn update_receipt(&self, message_id: Uuid, user_id: Uuid, status: i32) -> QueryResult<()>;
+    async fn update_receipt(&self, message_id: Uuid, user_id: Uuid, status: i32)
+    -> QueryResult<()>;
 }

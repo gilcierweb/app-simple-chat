@@ -1,7 +1,7 @@
 #![allow(dead_code)]
 
-use actix_web::{web, HttpResponse};
-use base64::{engine::general_purpose::STANDARD as B64, Engine};
+use actix_web::{HttpResponse, web};
+use base64::{Engine, engine::general_purpose::STANDARD as B64};
 use uuid::Uuid;
 
 use crate::errors::AppError;
@@ -67,12 +67,16 @@ pub async fn list(
     let conv_id = path.into_inner();
     let limit = query.limit.unwrap_or(50).min(100);
 
-    let _ = container.conversation_members.find(conv_id, user_id)
+    let _ = container
+        .conversation_members
+        .find(conv_id, user_id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
 
-    let msgs = container.messages.find_by_conversation(conv_id, query.before, limit)
+    let msgs = container
+        .messages
+        .find_by_conversation(conv_id, query.before, limit)
         .await
         .map_err(AppError::Database)?;
 
@@ -92,22 +96,29 @@ pub async fn send(
     let user_id = user.claims().sub;
     let conv_id = path.into_inner();
 
-    let _ = container.conversation_members.find(conv_id, user_id)
+    let _ = container
+        .conversation_members
+        .find(conv_id, user_id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
 
-    let ct_bytes = B64.decode(&body.ciphertext)
+    let ct_bytes = B64
+        .decode(&body.ciphertext)
         .map_err(|_| AppError::BadRequest("Invalid base64 ciphertext".into()))?;
 
-    let msg = container.messages.create(
-        conv_id,
-        user_id,
-        ct_bytes,
-        body.iv.clone(),
-        body.message_type,
-        body.reply_to_id,
-    ).await.map_err(AppError::Database)?;
+    let msg = container
+        .messages
+        .create(
+            conv_id,
+            user_id,
+            ct_bytes,
+            body.iv.clone(),
+            body.message_type,
+            body.reply_to_id,
+        )
+        .await
+        .map_err(AppError::Database)?;
 
     let response = MessageResponse::from(msg.clone());
 
@@ -126,7 +137,9 @@ pub async fn send(
             "created_at": msg.created_at,
         }),
     );
-    container.ws_state.broadcast_to_room(&conv_id.to_string(), ws_msg);
+    container
+        .ws_state
+        .broadcast_to_room(&conv_id.to_string(), ws_msg);
 
     Ok(HttpResponse::Created().json(response))
 }
@@ -141,16 +154,22 @@ pub async fn delete(
     let user_id = user.claims().sub;
     let (conv_id, msg_id) = path.into_inner();
 
-    let msg = container.messages.find_by_id(msg_id)
+    let msg = container
+        .messages
+        .find_by_id(msg_id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
 
     if msg.sender_id != user_id {
-        return Err(AppError::Forbidden("Cannot delete another user's message".to_string()));
+        return Err(AppError::Forbidden(
+            "Cannot delete another user's message".to_string(),
+        ));
     }
 
-    container.messages.soft_delete(msg_id)
+    container
+        .messages
+        .soft_delete(msg_id)
         .await
         .map_err(AppError::Database)?;
 
@@ -171,14 +190,16 @@ pub async fn update_receipt(
         .get("status")
         .and_then(|v| v.as_str())
         .unwrap_or("delivered");
-    
+
     let status = match status_str {
         "delivered" => 1,
         "read" => 2,
         _ => 1,
     };
 
-    container.messages.update_receipt(msg_id, _user_id, status)
+    container
+        .messages
+        .update_receipt(msg_id, _user_id, status)
         .await
         .map_err(AppError::Database)?;
 

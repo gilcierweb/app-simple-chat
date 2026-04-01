@@ -35,11 +35,47 @@ export const useConversationStore = defineStore('conversations', () => {
     messages.value[conversationId] = msgs
   }
 
+  function isPlaceholder(msg?: Message | null): boolean {
+    if (!msg) return false
+    if (msg.is_placeholder) return true
+    return msg.plaintext === '🔒 Encrypted message' || msg.plaintext === '[Unable to decrypt]'
+  }
+
+  function mergeMessage(existing: Message, incoming: Message): Message {
+    // Preserve known-good plaintext when incoming payload is placeholder.
+    if (existing.plaintext && !isPlaceholder(existing) && isPlaceholder(incoming)) {
+      return {
+        ...incoming,
+        plaintext: existing.plaintext,
+        is_placeholder: false,
+      }
+    }
+
+    // If incoming has legitimate plaintext, it should win.
+    if (incoming.plaintext && !isPlaceholder(incoming)) {
+      return {
+        ...existing,
+        ...incoming,
+        is_placeholder: false,
+      }
+    }
+
+    // Otherwise keep the most complete version.
+    return {
+      ...existing,
+      ...incoming,
+    }
+  }
+
   function appendMessage(msg: Message) {
     // Create new array to ensure reactivity
     const current = messages.value[msg.conversation_id] || []
-    // Avoid duplicates
-    if (!current.some(m => m.id === msg.id)) {
+    const idx = current.findIndex(m => m.id === msg.id)
+    if (idx >= 0) {
+      const next = [...current]
+      next[idx] = mergeMessage(next[idx], msg)
+      messages.value[msg.conversation_id] = next
+    } else {
       messages.value[msg.conversation_id] = [...current, msg]
     }
 

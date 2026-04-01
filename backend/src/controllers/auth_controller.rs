@@ -15,7 +15,7 @@ use utoipa::ToSchema;
 use uuid::Uuid;
 use validator::Validate;
 
-// --Request/Response DTOs 
+// --Request/Response DTOs
 
 #[derive(Debug, Deserialize, Validate, ToSchema)]
 pub struct RegisterRequest {

@@ -1,7 +1,7 @@
-use serde::{Deserialize, Serialize};
-use jsonwebtoken::{decode, DecodingKey, Validation};
-use uuid::Uuid;
 use crate::config::AppConfig;
+use jsonwebtoken::{DecodingKey, Validation, decode};
+use serde::{Deserialize, Serialize};
+use uuid::Uuid;
 
 #[derive(Debug, Serialize, Deserialize, Clone)]
 pub struct Claims {
@@ -14,7 +14,8 @@ pub struct Claims {
 
 impl Claims {
     pub fn has_role(&self, role: &str) -> bool {
-        self.roles.as_ref()
+        self.roles
+            .as_ref()
             .map(|r| r.contains(&role.to_string()))
             .unwrap_or(false)
     }
@@ -24,12 +25,16 @@ impl Claims {
     }
 
     pub fn profile_id(&self) -> Option<Uuid> {
-        self.profile_id.as_ref()
+        self.profile_id
+            .as_ref()
             .and_then(|id| Uuid::parse_str(id).ok())
     }
 }
 
-pub fn verify_access_token(token: &str, config: &AppConfig) -> Result<Claims, jsonwebtoken::errors::Error> {
+pub fn verify_access_token(
+    token: &str,
+    config: &AppConfig,
+) -> Result<Claims, jsonwebtoken::errors::Error> {
     let validation = Validation::default();
     let token_data = decode::<Claims>(
         token,

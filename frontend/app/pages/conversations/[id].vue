@@ -363,6 +363,9 @@ async function onSearch() {
 
 function onMessageSent(msg: Message) {
   convStore.appendMessage(msg)
+  if (msg.plaintext && !isPlaceholderMessage(msg) && msg.sender_id !== 'system') {
+    void messageStore.saveLocal(msg)
+  }
   scrollToBottom(true)
 }
 
@@ -406,20 +409,28 @@ onMounted(async () => {
       console.log('Processing new_message for conversation:', conversationId, 'event.conv:', event.conversation_id, 'MATCH!')
       // Use sender_id to get the correct session key for decryption
       const senderId = event.sender_id
+      const isOwnMessage = senderId === authStore.user?.id
       console.log('Sender ID for decryption:', senderId)
       // Fetch peer bundle from sender and establish/get session key
       let sessionKey: CryptoKey | null = null
-      try {
-        const bundle = await keyStore.fetchPeerBundle(senderId)
-        if (bundle) {
-          sessionKey = await keyStore.getSessionKey(conversationId, senderId, bundle)
+      if (!isOwnMessage) {
+        try {
+          const bundle = await keyStore.fetchPeerBundle(senderId)
+          if (bundle) {
+            sessionKey = await keyStore.getSessionKey(conversationId, senderId, bundle)
+          }
+        } catch (err) {
+          console.error('Failed to get session key:', err)
         }
-      } catch (err) {
-        console.error('Failed to get session key:', err)
       }
       console.log('Session key:', sessionKey)
       let plaintext = UNABLE_TO_DECRYPT_PLACEHOLDER
-      if (sessionKey) {
+      if (isOwnMessage) {
+        const existing = (convStore.messages[conversationId] ?? []).find(m => m.id === event.message_id)
+        if (existing?.plaintext && !isPlaceholderMessage(existing)) {
+          plaintext = existing.plaintext
+        }
+      } else if (sessionKey) {
         try { 
           plaintext = await keyStore.decrypt(sessionKey, event.ciphertext, event.iv) 
         } catch (err) { 

@@ -10,8 +10,8 @@ pub mod ws_controller;
 
 use actix_web::{HttpResponse, Responder};
 use diesel::QueryResult;
-use serde::Serialize;
 use rust_i18n::t;
+use serde::Serialize;
 
 pub fn handle_result<T: Serialize>(result: QueryResult<T>) -> impl Responder {
     match result {

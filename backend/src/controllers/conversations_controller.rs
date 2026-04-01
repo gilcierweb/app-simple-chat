@@ -1,14 +1,14 @@
 #![allow(dead_code)]
 
-use actix_web::{HttpResponse, get, post, delete, web};
+use actix_web::{HttpResponse, delete, get, post, web};
+use chrono::{DateTime, Utc};
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
-use chrono::{DateTime, Utc};
 
+use crate::controllers::messages_controller::MessageResponse;
 use crate::errors::{AppError, AppResult};
 use crate::middleware::auth::AuthUser;
 use crate::repositories::container::AppContainer;
-use crate::controllers::messages_controller::MessageResponse;
 
 #[derive(Debug, Serialize, Deserialize)]
 pub struct ConversationResponse {
@@ -33,7 +33,11 @@ impl From<crate::models::conversation::Conversation> for ConversationResponse {
     fn from(conv: crate::models::conversation::Conversation) -> Self {
         Self {
             id: conv.id,
-            conversation_type: if conv.conversation_type == 1 { "direct".to_string() } else { "group".to_string() },
+            conversation_type: if conv.conversation_type == 1 {
+                "direct".to_string()
+            } else {
+                "group".to_string()
+            },
             name: None,
             avatar_url: conv.avatar_url,
             created_by: conv.created_by,
@@ -71,26 +75,37 @@ pub async fn list_conversations(
     container: web::Data<AppContainer>,
 ) -> AppResult<HttpResponse> {
     let user_id = user.claims().sub;
-    
-    let convs = container.conversations.find_by_user(user_id).await
+
+    let convs = container
+        .conversations
+        .find_by_user(user_id)
+        .await
         .map_err(AppError::Database)?;
 
     let mut response_list = Vec::new();
     for conv in convs {
-        let members = container.conversation_members.find_by_conversation(conv.id).await
+        let members = container
+            .conversation_members
+            .find_by_conversation(conv.id)
+            .await
             .map_err(AppError::Database)?;
-        
-        let member_responses: Vec<ConversationMemberResponse> = members.iter().map(|m| {
-            ConversationMemberResponse {
+
+        let member_responses: Vec<ConversationMemberResponse> = members
+            .iter()
+            .map(|m| ConversationMemberResponse {
                 conversation_id: m.conversation_id,
                 user_id: m.user_id,
                 role: m.role,
-            }
-        }).collect();
+            })
+            .collect();
 
         response_list.push(ConversationResponse {
             id: conv.id,
-            conversation_type: if conv.conversation_type == 1 { "direct".to_string() } else { "group".to_string() },
+            conversation_type: if conv.conversation_type == 1 {
+                "direct".to_string()
+            } else {
+                "group".to_string()
+            },
             name: None,
             avatar_url: conv.avatar_url,
             created_by: conv.created_by,
@@ -110,8 +125,11 @@ pub async fn lookup_user_by_email(
     container: web::Data<AppContainer>,
 ) -> AppResult<HttpResponse> {
     let email = query.get("email").cloned().unwrap_or_default();
-    
-    let user = container.users.find_by_email(&email).await
+
+    let user = container
+        .users
+        .find_by_email(&email)
+        .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
 
@@ -130,41 +148,49 @@ pub async fn create_conversation(
     container: web::Data<AppContainer>,
 ) -> AppResult<HttpResponse> {
     let user_id = user.claims().sub;
-    
+
     let participant_id = if let Some(id) = body.participant_user_id {
         id
     } else if let Some(email) = &body.participant_email {
-        let user = container.users.find_by_email(email).await
+        let user = container
+            .users
+            .find_by_email(email)
+            .await
             .map_err(AppError::Database)?
             .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
         user.id
     } else {
-        return Err(AppError::BadRequest("Either participant_user_id or participant_email is required".to_string()));
+        return Err(AppError::BadRequest(
+            "Either participant_user_id or participant_email is required".to_string(),
+        ));
     };
-    
+
     let conv_type = body.conversation_type.unwrap_or(1);
-    
+
     // Check if direct conversation already exists between these two users
     if conv_type == 1 {
-        if let Some(existing_conv) = container.conversations
+        if let Some(existing_conv) = container
+            .conversations
             .find_existing_direct_conversation(user_id, participant_id)
             .await
             .map_err(AppError::Database)?
         {
             // Return existing conversation with members
-            let members = container.conversation_members
+            let members = container
+                .conversation_members
                 .find_by_conversation(existing_conv.id)
                 .await
                 .map_err(AppError::Database)?;
-            
-            let member_responses: Vec<ConversationMemberResponse> = members.iter().map(|m| {
-                ConversationMemberResponse {
+
+            let member_responses: Vec<ConversationMemberResponse> = members
+                .iter()
+                .map(|m| ConversationMemberResponse {
                     conversation_id: m.conversation_id,
                     user_id: m.user_id,
                     role: m.role,
-                }
-            }).collect();
-            
+                })
+                .collect();
+
             let response = ConversationResponse {
                 id: existing_conv.id,
                 conversation_type: "direct".to_string(),
@@ -178,48 +204,72 @@ pub async fn create_conversation(
             return Ok(HttpResponse::Ok().json(response));
         }
     }
-    
-    let conv = container.conversations.create(&crate::models::conversation::NewConversation {
-        id: Uuid::new_v4(),
-        conversation_type: conv_type,
-        name_enc: None,
-        avatar_url: None,
-        created_by: user_id,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    }).await.map_err(AppError::Database)?;
 
-    container.conversation_members.create(&crate::models::conversation_member::NewConversationMember {
-        conversation_id: conv.id,
-        user_id,
-        role: 1,
-        joined_at: Utc::now(),
-        last_read_at: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    }).await.map_err(AppError::Database)?;
+    let conv = container
+        .conversations
+        .create(&crate::models::conversation::NewConversation {
+            id: Uuid::new_v4(),
+            conversation_type: conv_type,
+            name_enc: None,
+            avatar_url: None,
+            created_by: user_id,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
+        .await
+        .map_err(AppError::Database)?;
 
-    container.conversation_members.create(&crate::models::conversation_member::NewConversationMember {
-        conversation_id: conv.id,
-        user_id: participant_id,
-        role: 3,
-        joined_at: Utc::now(),
-        last_read_at: None,
-        created_at: Utc::now(),
-        updated_at: Utc::now(),
-    }).await.map_err(AppError::Database)?;
+    container
+        .conversation_members
+        .create(&crate::models::conversation_member::NewConversationMember {
+            conversation_id: conv.id,
+            user_id,
+            role: 1,
+            joined_at: Utc::now(),
+            last_read_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
+        .await
+        .map_err(AppError::Database)?;
+
+    container
+        .conversation_members
+        .create(&crate::models::conversation_member::NewConversationMember {
+            conversation_id: conv.id,
+            user_id: participant_id,
+            role: 3,
+            joined_at: Utc::now(),
+            last_read_at: None,
+            created_at: Utc::now(),
+            updated_at: Utc::now(),
+        })
+        .await
+        .map_err(AppError::Database)?;
 
     let response = ConversationResponse {
         id: conv.id,
-        conversation_type: if conv.conversation_type == 1 { "direct".to_string() } else { "group".to_string() },
+        conversation_type: if conv.conversation_type == 1 {
+            "direct".to_string()
+        } else {
+            "group".to_string()
+        },
         name: None,
         avatar_url: conv.avatar_url,
         created_by: conv.created_by,
         created_at: conv.created_at,
         updated_at: conv.updated_at,
         members: Some(vec![
-            ConversationMemberResponse { conversation_id: conv.id, user_id, role: 1 },
-            ConversationMemberResponse { conversation_id: conv.id, user_id: participant_id, role: 3 },
+            ConversationMemberResponse {
+                conversation_id: conv.id,
+                user_id,
+                role: 1,
+            },
+            ConversationMemberResponse {
+                conversation_id: conv.id,
+                user_id: participant_id,
+                role: 3,
+            },
         ]),
     };
     Ok(HttpResponse::Created().json(response))
@@ -234,13 +284,18 @@ pub async fn get_conversation_messages(
 ) -> AppResult<HttpResponse> {
     let user_id = user.claims().sub;
     let conversation_id = path.into_inner();
-    
-    let _ = container.conversation_members.find(conversation_id, user_id)
+
+    let _ = container
+        .conversation_members
+        .find(conversation_id, user_id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
 
-    let msgs = container.messages.find_by_conversation(conversation_id, None, 50).await
+    let msgs = container
+        .messages
+        .find_by_conversation(conversation_id, None, 50)
+        .await
         .map_err(AppError::Database)?;
 
     let response: Vec<MessageResponse> = msgs.into_iter().map(MessageResponse::from).collect();
@@ -258,20 +313,26 @@ pub async fn send_message(
 ) -> AppResult<HttpResponse> {
     let sender_id = user.claims().sub;
     let conversation_id = path.into_inner();
-    
-    let _ = container.conversation_members.find(conversation_id, sender_id)
+
+    let _ = container
+        .conversation_members
+        .find(conversation_id, sender_id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
 
-    let msg = container.messages.create(
-        conversation_id,
-        sender_id,
-        body.ciphertext.clone(),
-        body.iv.clone(),
-        body.message_type,
-        None,
-    ).await.map_err(AppError::Database)?;
+    let msg = container
+        .messages
+        .create(
+            conversation_id,
+            sender_id,
+            body.ciphertext.clone(),
+            body.iv.clone(),
+            body.message_type,
+            None,
+        )
+        .await
+        .map_err(AppError::Database)?;
 
     let response = MessageResponse::from(msg);
 
@@ -287,13 +348,18 @@ pub async fn delete_message(
 ) -> AppResult<HttpResponse> {
     let user_id = user.claims().sub;
     let (conversation_id, message_id) = path.into_inner();
-    
-    let _ = container.conversation_members.find(conversation_id, user_id)
+
+    let _ = container
+        .conversation_members
+        .find(conversation_id, user_id)
         .await
         .map_err(AppError::Database)?
         .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
-    
-    container.messages.soft_delete(message_id).await
+
+    container
+        .messages
+        .soft_delete(message_id)
+        .await
         .map_err(AppError::Database)?;
 
     Ok(HttpResponse::NoContent().finish())
