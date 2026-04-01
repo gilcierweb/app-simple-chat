@@ -16,6 +16,7 @@ A full-stack, real-time chat application with end-to-end encryption (E2EE), buil
 - [Run with Docker Compose](#run-with-docker-compose)
 - [Run with Docker (Manual Containers)](#run-with-docker-manual-containers)
 - [Run Without Docker (Local Native)](#run-without-docker-local-native)
+- [Infrastructure Assessment](#infrastructure-assessment)
 - [Database Migrations and Seeding](#database-migrations-and-seeding)
 - [API and Realtime Endpoints](#api-and-realtime-endpoints)
 - [Internationalization (i18n)](#internationalization-i18n)
@@ -36,12 +37,11 @@ App Simple Chat focuses on secure messaging and a modern UX:
 
 This repository is active and evolving.
 
-Important note about infrastructure:
+Infrastructure has been updated to align with the current project layout:
 
-- There is a compose file at `infra/docker-compose.yml`, but parts of it reference files/paths that are not fully present in the root runtime layout (for example backend build context and nginx config paths).
-- For a reliable developer setup today, use:
-  - Docker Compose for infrastructure services only (`postgres`, `redis`) plus local backend/frontend.
-  - Or run everything locally without Docker.
+- `infra/docker-compose.yml` now points to `../backend` and `../frontend` build contexts.
+- API and WebSocket routing were aligned in `infra/nginx/nginx.conf` to `/api/v1/*` and `/api/v1/ws`.
+- Backend and frontend Dockerfiles are available in their own app folders.
 
 ## Tech Stack
 
@@ -139,6 +139,7 @@ Important note about infrastructure:
 .
 ├── backend
 │   ├── Cargo.toml
+│   ├── Dockerfile
 │   ├── diesel.toml
 │   ├── migrations
 │   └── src
@@ -153,6 +154,8 @@ Important note about infrastructure:
 │       ├── routes/
 │       └── ws/
 ├── frontend
+│   ├── Dockerfile
+│   ├── nginx.conf
 │   ├── package.json
 │   ├── nuxt.config.ts
 │   ├── app/
@@ -164,7 +167,9 @@ Important note about infrastructure:
 │       └── locales/
 ├── infra
 │   ├── docker-compose.yml
-│   └── Dockerfile
+│   ├── Dockerfile
+│   └── nginx/
+│       └── nginx.conf
 └── README.md
 ```
 
@@ -212,85 +217,60 @@ NUXT_PUBLIC_APP_NAME=Simple Chat
 
 ## Run with Docker Compose
 
-Recommended approach with current repository state:
+Recommended approach:
 
-- Use Compose to run infra services (`postgres`, `redis`)
-- Run backend/frontend locally
+- Run full stack with Compose (API, frontend, nginx, postgres, redis, minio)
+- Or run only infra services and keep API/frontend local
 
-### 1. Start infra services
+### 1. Create compose environment file
 
-From repository root:
-
-```bash
-docker compose -f infra/docker-compose.yml up -d postgres redis
-```
-
-### 2. Verify services
+Create `infra/.env` (or export vars in shell):
 
 ```bash
-docker compose -f infra/docker-compose.yml ps
+POSTGRES_PASSWORD=secret
+REDIS_PASSWORD=redissecret
+JWT_SECRET=replace_with_long_secret
+DB_ENCRYPTION_KEY=replace_with_hex_key
+MINIO_ACCESS_KEY=minioadmin
+MINIO_SECRET_KEY=miniasecret
+FRONTEND_URL=http://localhost:3000
+NUXT_PUBLIC_API_BASE=http://localhost/api/v1
+NUXT_PUBLIC_WS_URL=ws://localhost/api/v1/ws
 ```
 
-### 3. Configure backend/frontend env files
+### 2. Start full stack
 
-Create `backend/.env` and `frontend/.env` using the examples above.
+```bash
+docker compose --env-file infra/.env -f infra/docker-compose.yml up -d --build
+```
 
-### 4. Run migrations
+### 3. Verify services
+
+```bash
+docker compose --env-file infra/.env -f infra/docker-compose.yml ps
+```
+
+### 4. Run migrations (one time per fresh database)
 
 ```bash
 cd backend
-diesel migration run
+DATABASE_URL=postgres://simplechat:secret@localhost:5432/simplechat diesel migration run
 ```
 
-### 5. Run backend
+### 5. Open app
+
+- Frontend via nginx: `http://localhost`
+- Backend API via nginx: `http://localhost/api/v1`
+- WebSocket via nginx: `ws://localhost/api/v1/ws`
+- Swagger UI: `http://localhost/swagger-ui/`
+
+### 6. Optional: infra-only mode
+
+Use this when you want backend/frontend running locally with hot reload:
 
 ```bash
-cargo run
+docker compose --env-file infra/.env -f infra/docker-compose.yml up -d postgres redis
 ```
-
-Backend command options (inside `backend/`):
-
-```bash
-# Fast compile check (no binary generated)
-cargo check
-
-# Debug run (default for development)
-cargo run
-
-# Optimized release run
-cargo run --release
-
-# Build debug binary
-cargo build
-
-# Build optimized release binary
-cargo build --release
-
-# Run tests
-cargo test
-
-# Lint suggestions
-cargo clippy --all-targets --all-features
-
-# Format code
-cargo fmt --all
-```
-
-### 6. Run frontend
-
-In another terminal:
-
-```bash
-cd frontend
-pnpm install
-pnpm dev
-```
-
-### 7. Open app
-
-- Frontend: `http://localhost:3000`
-- Backend API: `http://localhost:8080/api/v1`
-- Swagger UI: `http://localhost:8080/swagger-ui/`
 
 ## Run with Docker (Manual Containers)
 
@@ -333,6 +313,13 @@ CREATE DATABASE app_chat;
 
 ### 3. Configure backend env
 
+```shell
+export DATABASE_URL=postgres://postgres:password@localhost:5432/simple_chat_development
+openssl rand -base64 32
+export JWT_SECRET=your-secret-key-min-32-characters-long
+export JWT_EXPIRY_HOURS=8
+```
+
 Set `DATABASE_URL` and `REDIS_URL` to your local services.
 
 ### 4. Run migrations
@@ -365,6 +352,40 @@ cd frontend
 pnpm install
 pnpm dev
 ```
+
+## Infrastructure Assessment
+
+Infra was improved to be closer to a functional end-to-end setup.
+
+### What is already good
+
+- `infra/nginx/nginx.conf` exists and has:
+  - upstream blocks for `api` and `frontend`
+  - websocket upgrade handling
+  - basic security headers
+  - request rate-limit zones
+- `infra/docker-compose.yml` defines all main services:
+  - `postgres`, `redis`, `minio`, `api`, `frontend`, `nginx`, `mailhog`
+- Build context paths now match repository layout (`../backend`, `../frontend`)
+- API proxy is aligned to backend prefixes (`/api/v1` and `/api/v1/ws`)
+
+### Remaining checks and potential improvements
+
+1. Validate full stack locally after env setup:
+   - `docker compose --env-file infra/.env -f infra/docker-compose.yml config`
+   - `docker compose --env-file infra/.env -f infra/docker-compose.yml up -d --build`
+2. TLS cert mount is optional but still declared:
+   - Compose mounts `infra/nginx/certs`; create this directory/files for HTTPS mode.
+3. Frontend image serves Nuxt static output:
+   - If later you need SSR/runtime server features, switch frontend service to run Nitro server instead of static nginx.
+
+### Recommended improvements
+
+1. Validate full stack locally with:
+   - `docker compose -f infra/docker-compose.yml config`
+   - `docker compose -f infra/docker-compose.yml up --build`
+2. Add an `infra/.env.example` specifically for compose defaults and required secrets.
+3. Add CI check to lint compose/nginx config on each PR.
 
 ## Database Migrations and Seeding
 
