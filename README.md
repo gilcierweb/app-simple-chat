@@ -1,101 +1,156 @@
 # App Simple Chat
 
-Secure real-time chat platform with end-to-end encryption (E2E), built with a Rust backend and a Nuxt 4 frontend.
+A full-stack, real-time chat application with end-to-end encryption (E2EE), built with **Rust (Actix + Diesel)** on the backend and **Nuxt 4 (Vue 3)** on the frontend.
 
-## Overview
+## Table of Contents
 
-App Simple Chat is a full-stack messaging application focused on privacy and modern web UX:
+- [Project Summary](#project-summary)
+- [Current Status](#current-status)
+- [Tech Stack](#tech-stack)
+- [High-Level Architecture](#high-level-architecture)
+- [Request and Message Flows](#request-and-message-flows)
+- [Repository Structure (Tree)](#repository-structure-tree)
+- [Prerequisites](#prerequisites)
+- [Environment Variables](#environment-variables)
+- [Run with Docker Compose](#run-with-docker-compose)
+- [Run with Docker (Manual Containers)](#run-with-docker-manual-containers)
+- [Run Without Docker (Local Native)](#run-without-docker-local-native)
+- [Database Migrations and Seeding](#database-migrations-and-seeding)
+- [API and Realtime Endpoints](#api-and-realtime-endpoints)
+- [Internationalization (i18n)](#internationalization-i18n)
+- [Troubleshooting](#troubleshooting)
+- [Security Notes](#security-notes)
 
-- End-to-end encrypted messaging (client-side encryption/decryption)
-- Real-time communication via WebSocket
+## Project Summary
+
+App Simple Chat focuses on secure messaging and a modern UX:
+
+- End-to-end encrypted chat (plaintext handled on client side)
+- WebSocket real-time updates (new message, typing, room events)
 - JWT auth with refresh flow
-- User profile and conversation management
-- Multi-language frontend (pt-BR, en, es)
+- Conversation and user profile management
+- Multi-language UI (`pt-BR`, `en`, `es`)
+
+## Current Status
+
+This repository is active and evolving.
+
+Important note about infrastructure:
+
+- There is a compose file at `infra/docker-compose.yml`, but parts of it reference files/paths that are not fully present in the root runtime layout (for example backend build context and nginx config paths).
+- For a reliable developer setup today, use:
+  - Docker Compose for infrastructure services only (`postgres`, `redis`) plus local backend/frontend.
+  - Or run everything locally without Docker.
 
 ## Tech Stack
 
 ### Backend
-- Rust (Edition 2024)
-- Actix Web
-- Diesel ORM
-- PostgreSQL
-- Redis
-- Utoipa + Swagger UI
+
+- [Rust](https://www.rust-lang.org/) (Edition 2024)
+- [Actix Web](https://actix.rs/)
+- [Diesel ORM](https://diesel.rs/)
+- [PostgreSQL](https://www.postgresql.org/)
+- [Redis](https://redis.io/)
+- [Utoipa](https://github.com/juhaku/utoipa) + [Swagger UI](https://swagger.io/tools/swagger-ui/)
 
 ### Frontend
-- Nuxt 4
-- Vue 3
-- Pinia
-- Tailwind CSS 4
-- FlyonUI 2
-- Nuxt i18n
-- IndexedDB (`idb`)
 
-## Repository Structure
+- [Nuxt 4](https://nuxt.com/)
+- [Vue 3](https://vuejs.org/)
+- [Pinia](https://pinia.vuejs.org/)
+- [Tailwind CSS 4](https://tailwindcss.com/)
+- [FlyonUI 2](https://flyonui.com/)
+- [Nuxt i18n (`@nuxtjs/i18n`)](https://i18n.nuxtjs.org/)
+- [IndexedDB](https://developer.mozilla.org/docs/Web/API/IndexedDB_API) via [`idb`](https://github.com/jakearchibald/idb)
+
+## High-Level Architecture
+
+1. Frontend encrypts message content before sending.
+2. Backend stores ciphertext + metadata only.
+3. Backend emits realtime events through WebSocket rooms.
+4. Clients decrypt messages locally using key/session material.
+
+## Request and Message Flows
+
+### Authentication Flow
+
+1. `POST /api/v1/auth/register`
+2. User confirms account (`/api/v1/auth/confirm`)
+3. `POST /api/v1/auth/login`
+4. Client stores access/refresh tokens
+5. `POST /api/v1/auth/refresh` when access token expires
+
+### Encrypted Messaging Flow
+
+1. Client uploads key bundle (`POST /api/v1/keys`)
+2. Sender fetches recipient bundle (`GET /api/v1/keys/{user_id}`)
+3. Sender encrypts message in browser
+4. Sender posts ciphertext (`POST /api/v1/messages/{conversation_id}`)
+5. Backend broadcasts `new_message` event via WebSocket
+6. Receiver decrypts locally
+
+### Conversation Screen Load Flow
+
+1. Frontend resolves conversation by route id
+2. Frontend fetches server messages (`GET /api/v1/messages/{conversation_id}`)
+3. Frontend attempts local decryption/session resolution
+4. Frontend renders decrypted messages and updates local cache
+
+## Repository Structure (Tree)
 
 ```text
 .
-├── backend/        # Rust API (Actix + Diesel)
-├── frontend/       # Nuxt 4 app
-├── docs/           # Product notes, backlog, design artifacts
-├── infra/          # Container-related files (work-in-progress)
+├── backend
+│   ├── Cargo.toml
+│   ├── diesel.toml
+│   ├── migrations
+│   └── src
+│       ├── main.rs
+│       ├── bin/
+│       │   └── seed.rs
+│       ├── controllers/
+│       ├── db/
+│       ├── middleware/
+│       ├── models/
+│       ├── repositories/
+│       ├── routes/
+│       └── ws/
+├── frontend
+│   ├── package.json
+│   ├── nuxt.config.ts
+│   ├── app/
+│   │   ├── components/
+│   │   ├── composables/
+│   │   ├── pages/
+│   │   └── stores/
+│   └── i18n/
+│       └── locales/
+├── infra
+│   ├── docker-compose.yml
+│   └── Dockerfile
 └── README.md
 ```
 
-## Core Features
-
-- Authentication:
-  - Register, email confirmation, login, refresh, logout
-  - 2FA endpoints available
-- Messaging:
-  - Create/list conversations
-  - Send/list/delete messages
-  - Delivery/read receipts
-- Encryption:
-  - Client key upload (`/keys`)
-  - Peer prekey bundle retrieval
-  - Web Crypto + local key/session cache
-- Realtime:
-  - WebSocket room join/leave
-  - New message and typing events
-
-## Architecture at a Glance
-
-1. The frontend encrypts message content on the client.
-2. The backend stores ciphertext and metadata only.
-3. WebSocket broadcasts new message events in conversation rooms.
-4. Clients decrypt incoming content using local session keys.
-
 ## Prerequisites
 
-- Rust (stable, compatible with edition `2024`)
+- Rust stable (edition 2024 compatible)
 - Cargo
-- Node.js 20+ (recommended)
+- Node.js 20+ (Node 22 recommended)
 - pnpm
 - PostgreSQL 16+
 - Redis 7+
 
-Optional:
-- Diesel CLI (for running DB migrations manually)
+Optional (for migrations):
 
 ```bash
 cargo install diesel_cli --no-default-features --features postgres
 ```
 
-## Local Development
+## Environment Variables
 
-### 1) Start infrastructure services
+### Backend (`backend/.env`)
 
-Use your own Postgres/Redis, or start them with Docker quickly:
-
-```bash
-docker run --name app-chat-postgres -e POSTGRES_PASSWORD=postgres -e POSTGRES_DB=app_chat -p 5432:5432 -d postgres:16-alpine
-docker run --name app-chat-redis -p 6379:6379 -d redis:7-alpine
-```
-
-### 2) Configure backend environment
-
-Create `backend/.env` (or export variables in your shell):
+Minimum required variables:
 
 ```env
 HOST=0.0.0.0
@@ -110,32 +165,7 @@ JWT_SECRET=replace_with_a_long_random_secret
 DB_POOL_SIZE=10
 ```
 
-Notes:
-- `DATABASE_URL` and `JWT_SECRET` are required.
-- `REDIS_URL` has a default, but you should set it explicitly for consistency.
-
-### 3) Run database migrations
-
-From `backend/`:
-
-```bash
-diesel migration run
-```
-
-### 4) Run backend
-
-From `backend/`:
-
-```bash
-cargo run
-```
-
-Backend runs by default on:
-- `http://localhost:8080`
-
-### 5) Configure frontend environment
-
-Create `frontend/.env`:
+### Frontend (`frontend/.env`)
 
 ```env
 NUXT_PUBLIC_API_BASE=http://localhost:8080/api/v1
@@ -143,95 +173,245 @@ NUXT_PUBLIC_WS_URL=ws://localhost:8080/api/v1/ws
 NUXT_PUBLIC_APP_NAME=Simple Chat
 ```
 
-### 6) Run frontend
+## Run with Docker Compose
 
-From `frontend/`:
+Recommended approach with current repository state:
+
+- Use Compose to run infra services (`postgres`, `redis`)
+- Run backend/frontend locally
+
+### 1. Start infra services
+
+From repository root:
 
 ```bash
+docker compose -f infra/docker-compose.yml up -d postgres redis
+```
+
+### 2. Verify services
+
+```bash
+docker compose -f infra/docker-compose.yml ps
+```
+
+### 3. Configure backend/frontend env files
+
+Create `backend/.env` and `frontend/.env` using the examples above.
+
+### 4. Run migrations
+
+```bash
+cd backend
+diesel migration run
+```
+
+### 5. Run backend
+
+```bash
+cargo run
+```
+
+Backend command options (inside `backend/`):
+
+```bash
+# Fast compile check (no binary generated)
+cargo check
+
+# Debug run (default for development)
+cargo run
+
+# Optimized release run
+cargo run --release
+
+# Build debug binary
+cargo build
+
+# Build optimized release binary
+cargo build --release
+
+# Run tests
+cargo test
+
+# Lint suggestions
+cargo clippy --all-targets --all-features
+
+# Format code
+cargo fmt --all
+```
+
+### 6. Run frontend
+
+In another terminal:
+
+```bash
+cd frontend
 pnpm install
 pnpm dev
 ```
 
-Frontend runs on:
-- `http://localhost:3000`
+### 7. Open app
 
-## Frontend Scripts
+- Frontend: `http://localhost:3000`
+- Backend API: `http://localhost:8080/api/v1`
+- Swagger UI: `http://localhost:8080/swagger-ui/`
 
-From `frontend/`:
+## Run with Docker (Manual Containers)
+
+If you prefer not to use compose, run infra containers directly.
+
+### 1. PostgreSQL
 
 ```bash
-pnpm dev        # start dev server
-pnpm build      # production build
-pnpm preview    # preview production build
-pnpm generate   # static generation
+docker run --name app-chat-postgres \
+  -e POSTGRES_USER=postgres \
+  -e POSTGRES_PASSWORD=postgres \
+  -e POSTGRES_DB=app_chat \
+  -p 5432:5432 -d postgres:16-alpine
 ```
 
-## API & Docs
+### 2. Redis
 
-- API base path: `/api/v1`
-- Health check: `GET /api/v1/health`
+```bash
+docker run --name app-chat-redis \
+  -p 6379:6379 -d redis:7-alpine
+```
+
+### 3. Run backend/frontend locally
+
+Follow the same steps in [Run with Docker Compose](#run-with-docker-compose) from env setup onward.
+
+## Run Without Docker (Local Native)
+
+### 1. Install and start PostgreSQL + Redis locally
+
+Use your OS package manager/service manager.
+
+### 2. Create database
+
+Example:
+
+```sql
+CREATE DATABASE app_chat;
+```
+
+### 3. Configure backend env
+
+Set `DATABASE_URL` and `REDIS_URL` to your local services.
+
+### 4. Run migrations
+
+```bash
+cd backend
+diesel migration run
+```
+
+### 5. Start backend
+
+```bash
+cargo run
+```
+
+You can also use:
+
+```bash
+cargo run --release
+cargo check
+cargo test
+cargo clippy --all-targets --all-features
+cargo fmt --all
+```
+
+### 6. Start frontend
+
+```bash
+cd frontend
+pnpm install
+pnpm dev
+```
+
+## Database Migrations and Seeding
+
+### Run migrations
+
+```bash
+cd backend
+diesel migration run
+```
+
+### Seed test data
+
+A complete system seed is available at `backend/src/bin/seed.rs`.
+
+```bash
+cd backend
+cargo run --bin seed
+```
+
+Seed includes:
+
+- Roles (`admin`, `operator`, `viewer`)
+- 6 test users
+- Profiles
+- User-role links
+- User keys (types 1, 2, 3)
+- Sample conversations, members, messages, receipts
+
+## API and Realtime Endpoints
+
+Base path: `/api/v1`
+
+### Core routes
+
+- `GET /api/v1/health`
+- `POST /api/v1/auth/register`
+- `POST /api/v1/auth/login`
+- `POST /api/v1/auth/refresh`
+- `POST /api/v1/auth/logout`
+- `GET /api/v1/conversations`
+- `POST /api/v1/conversations`
+- `GET /api/v1/messages/{conversation_id}`
+- `POST /api/v1/messages/{conversation_id}`
+- `DELETE /api/v1/messages/{conversation_id}/{message_id}`
+- `POST /api/v1/keys`
+- `GET /api/v1/keys/{user_id}`
+- `GET /api/v1/ws`
+- `GET /api/v1/ws/token`
+
+### API docs
+
 - Swagger UI: `/swagger-ui/`
 - OpenAPI JSON: `/api-docs/openapi.json`
 
-### Main endpoint groups
+## Internationalization (i18n)
 
-- Auth:
-  - `POST /api/v1/auth/register`
-  - `GET /api/v1/auth/confirm?token=...`
-  - `POST /api/v1/auth/login`
-  - `POST /api/v1/auth/refresh`
-  - `POST /api/v1/auth/logout`
-- Conversations:
-  - `GET /api/v1/conversations`
-  - `POST /api/v1/conversations`
-  - `GET /api/v1/users/lookup?email=...`
-- Messages:
-  - `GET /api/v1/messages/{conversation_id}`
-  - `POST /api/v1/messages/{conversation_id}`
-  - `DELETE /api/v1/messages/{conversation_id}/{message_id}`
-- Keys:
-  - `POST /api/v1/keys`
-  - `GET /api/v1/keys/{user_id}`
-- WebSocket:
-  - `GET /api/v1/ws`
-  - `GET /api/v1/ws/token`
-
-## Internationalization
-
-Frontend locales are defined in:
+Frontend locales:
 
 - `frontend/i18n/locales/pt-BR.json`
 - `frontend/i18n/locales/en.json`
 - `frontend/i18n/locales/es.json`
 
-Nuxt i18n strategy is `prefix_except_default` with `pt-BR` as default locale.
+Nuxt i18n strategy:
 
-## Security Notes
-
-- Keep `JWT_SECRET` private and rotate regularly.
-- Use TLS in production.
-- Restrict CORS (`FRONTEND_URL`) to trusted domains.
-- Never expose database credentials in client-side code.
+- `prefix_except_default`
+- Default locale: `pt-BR`
 
 ## Troubleshooting
 
-- `DATABASE_URL must be set`:
-  - Make sure backend env vars are loaded before `cargo run`.
-- Frontend cannot connect to API:
-  - Verify `NUXT_PUBLIC_API_BASE` and backend port.
-- WebSocket connection fails:
-  - Check `NUXT_PUBLIC_WS_URL` and CORS/allowed origins.
-- Diesel migration issues:
-  - Confirm Postgres is up and reachable with your `DATABASE_URL`.
+- `DATABASE_URL must be set`
+  - Ensure `backend/.env` exists and variables are loaded.
+- Frontend cannot reach backend
+  - Validate `NUXT_PUBLIC_API_BASE` and backend port.
+- WebSocket fails
+  - Validate `NUXT_PUBLIC_WS_URL` and CORS (`FRONTEND_URL`).
+- Migration errors
+  - Ensure Postgres is running and reachable from `DATABASE_URL`.
+- Compose starts fail for app services (`api`, `frontend`, `nginx`)
+  - Use Compose for `postgres`/`redis` only for now, or update infra paths/files.
 
-## Current Status
+## Security Notes
 
-This repository is actively evolving.  
-Some files under `docs/` and `infra/` are reference or work-in-progress artifacts and may not match the exact root runtime setup yet.
-
----
-
-If you want, I can also add:
-- a ready-to-use `backend/.env.example`
-- a ready-to-use `frontend/.env.example`
-- a one-command `Makefile` (`make dev`, `make migrate`, `make up-db`) for onboarding.
+- Keep `JWT_SECRET` private.
+- Use TLS in production.
+- Restrict allowed origins in `FRONTEND_URL`.
+- Never store plaintext message content server-side.
+- Rotate secrets regularly and avoid committing `.env` files.
