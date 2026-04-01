@@ -107,6 +107,8 @@ const keyStore = useKeyStore()
 const messageStore = useMessages()
 const ws = useWebSocket()
 const toast = useToast()
+const ENCRYPTED_PLACEHOLDER = '🔒 Encrypted message'
+const UNABLE_TO_DECRYPT_PLACEHOLDER = '[Unable to decrypt]'
 
 const loading = ref(false)
 const showSearch = ref(false)
@@ -159,6 +161,14 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
+function isPlaceholderMessage(msg?: Message | null): boolean {
+  if (!msg) return false
+  if (msg.is_placeholder) return true
+
+  // Backward compatibility with old locally cached placeholders (without flag)
+  return msg.plaintext === ENCRYPTED_PLACEHOLDER || msg.plaintext === UNABLE_TO_DECRYPT_PLACEHOLDER
+}
+
 async function loadMessages() {
   loading.value = true
   convStore.setActiveConversation(conversationId)
@@ -205,6 +215,7 @@ async function loadMessages() {
           created_at: new Date().toISOString(),
           deleted_at: null,
           plaintext: notification,
+          is_placeholder: true,
           status: 'delivered' as any,
         }
         
@@ -227,14 +238,14 @@ async function loadMessages() {
       remote.map(async (msg) => {
         // Check if we have a decrypted version locally
         const localMsg = local.find(l => l.id === msg.id)
-        if (localMsg?.plaintext && (!sessionKey || msg.deleted_at)) {
+        if (localMsg?.plaintext && !isPlaceholderMessage(localMsg) && (!sessionKey || msg.deleted_at)) {
           console.log('[DEBUG] Using local plaintext for message:', msg.id)
           return localMsg
         }
         
         if (!sessionKey || msg.deleted_at) {
           console.log('[DEBUG] Skipping decryption for message:', msg.id, 'sessionKey:', !!sessionKey, 'deleted_at:', msg.deleted_at)
-          return { ...msg, plaintext: '🔒 Encrypted message' }
+          return { ...msg, plaintext: ENCRYPTED_PLACEHOLDER, is_placeholder: true }
         }
         try {
           console.log('[DEBUG] Decrypting message:', msg.id)
@@ -245,10 +256,13 @@ async function loadMessages() {
           console.error('[DEBUG] Decryption failed for message:', msg.id, err)
           // Fall back to local plaintext if available
           if (localMsg?.plaintext) {
+            if (isPlaceholderMessage(localMsg)) {
+              return { ...msg, plaintext: ENCRYPTED_PLACEHOLDER, is_placeholder: true }
+            }
             console.log('[DEBUG] Falling back to local plaintext for message:', msg.id)
             return localMsg
           }
-          return { ...msg, plaintext: '🔒 Encrypted message' }
+          return { ...msg, plaintext: ENCRYPTED_PLACEHOLDER, is_placeholder: true }
         }
       }),
     )
@@ -258,7 +272,7 @@ async function loadMessages() {
     // Persist locally - only save messages with actual plaintext
     const messagesToSave = decrypted.filter(m => {
       const hasPlaintext = !!m.plaintext
-      const isNotPlaceholder = m.plaintext !== '🔒 Encrypted message' && m.plaintext !== '[Unable to decrypt]'
+      const isNotPlaceholder = !isPlaceholderMessage(m)
       const isNotWarning = !m.plaintext?.startsWith('⚠️')
       const isNotSystem = m.sender_id !== 'system'
       
@@ -364,7 +378,7 @@ onMounted(async () => {
         console.error('Failed to get session key:', err)
       }
       console.log('Session key:', sessionKey)
-      let plaintext = '[Unable to decrypt]'
+      let plaintext = UNABLE_TO_DECRYPT_PLACEHOLDER
       if (sessionKey) {
         try { 
           plaintext = await keyStore.decrypt(sessionKey, event.ciphertext, event.iv) 
@@ -383,11 +397,14 @@ onMounted(async () => {
         created_at: event.created_at,
         deleted_at: null,
         plaintext,
+        is_placeholder: plaintext === UNABLE_TO_DECRYPT_PLACEHOLDER,
         status: 'delivered',
       }
       console.log('Adding message to store:', msg)
       convStore.appendMessage(msg)
-      await messageStore.saveLocal(msg)
+      if (!isPlaceholderMessage(msg) && msg.sender_id !== 'system') {
+        await messageStore.saveLocal(msg)
+      }
       scrollToBottom(true)
 
       // Mark as read if this conversation is active

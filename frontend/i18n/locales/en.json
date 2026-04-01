@@ -4,185 +4,185 @@
   },
   "layout": {
     "auth": {
-      "footer": "Mensageria com criptografia ponta a ponta"
+      "footer": "End-to-end encrypted messaging"
     },
     "default": {
-      "toggleNavigation": "Alternar navegação",
-      "searchPlaceholder": "Buscar...",
-      "newChat": "Novo chat",
-      "settings": "Configurações",
-      "logout": "Sair"
+      "toggleNavigation": "Toggle navigation",
+      "searchPlaceholder": "Search...",
+      "newChat": "New chat",
+      "settings": "Settings",
+      "logout": "Log out"
     }
   },
   "auth": {
     "common": {
-      "email": "E-mail",
-      "emailPlaceholder": "voce{'@'}exemplo.com",
-      "password": "Senha",
+      "email": "Email",
+      "emailPlaceholder": "you{'@'}example.com",
+      "password": "Password",
       "passwordPlaceholder": "••••••••",
-      "or": "ou",
-      "e2eBadge": "Criptografia ponta a ponta"
+      "or": "or",
+      "e2eBadge": "End-to-end encrypted"
     },
     "errors": {
-      "registrationFailed": "Falha no cadastro",
-      "loginFailed": "Falha no login",
-      "unauthenticated": "Não autenticado"
+      "registrationFailed": "Registration failed",
+      "loginFailed": "Login failed",
+      "unauthenticated": "Unauthenticated"
     },
     "login": {
-      "title": "Bem-vindo de volta",
-      "subtitle": "Entre na sua conta segura",
-      "forgotPassword": "Esqueceu a senha?",
-      "authCode": "Código de autenticação",
+      "title": "Welcome back",
+      "subtitle": "Sign in to your secure account",
+      "forgotPassword": "Forgot password?",
+      "authCode": "Authentication code",
       "authCodePlaceholder": "000000",
-      "submit": "Entrar",
-      "noAccount": "Não tem uma conta?",
-      "createOne": "Crie uma"
+      "submit": "Sign in",
+      "noAccount": "Don't have an account?",
+      "createOne": "Create one"
     },
     "register": {
-      "title": "Criar conta",
-      "subtitle": "Entre na rede de mensagens segura",
-      "successTitle": "Conta criada com sucesso!",
-      "successHint": "Verifique seu e-mail para confirmar a conta.",
-      "passwordPlaceholder": "Mín. 8 caracteres",
-      "confirmPassword": "Confirmar senha",
-      "confirmPasswordPlaceholder": "Repita a senha",
-      "passwordMismatch": "As senhas não coincidem",
-      "submit": "Criar conta",
-      "hasAccount": "Já tem uma conta?",
-      "signIn": "Entrar",
+      "title": "Create account",
+      "subtitle": "Join the secure messaging network",
+      "successTitle": "Account created successfully!",
+      "successHint": "Check your email to confirm your account.",
+      "passwordPlaceholder": "Min. 8 characters",
+      "confirmPassword": "Confirm password",
+      "confirmPasswordPlaceholder": "Repeat password",
+      "passwordMismatch": "Passwords do not match",
+      "submit": "Create account",
+      "hasAccount": "Already have an account?",
+      "signIn": "Sign in",
       "strength": {
-        "tooShort": "Muito curta",
-        "weak": "Fraca",
-        "fair": "Razoável",
-        "good": "Boa",
-        "strong": "Forte"
+        "tooShort": "Too short",
+        "weak": "Weak",
+        "fair": "Fair",
+        "good": "Good",
+        "strong": "Strong"
       }
     },
     "confirm": {
-      "loading": "Confirmando seu e-mail...",
-      "successTitle": "E-mail confirmado!",
-      "successHint": "Sua conta está pronta. Agora você já pode entrar.",
-      "signIn": "Entrar",
-      "errorTitle": "Falha na confirmação",
-      "backToLogin": "Voltar ao login",
-      "missingToken": "Token de confirmação ausente",
-      "invalidLink": "Link de confirmação inválido ou expirado"
+      "loading": "Confirming your email...",
+      "successTitle": "Email confirmed!",
+      "successHint": "Your account is ready. You can sign in now.",
+      "signIn": "Sign in",
+      "errorTitle": "Confirmation failed",
+      "backToLogin": "Back to login",
+      "missingToken": "Missing confirmation token",
+      "invalidLink": "Invalid or expired confirmation link"
     }
   },
   "settings": {
-    "title": "Configurações",
+    "title": "Settings",
     "profile": {
-      "title": "Perfil",
-      "firstName": "Nome",
-      "firstNamePlaceholder": "João",
-      "lastName": "Sobrenome",
-      "lastNamePlaceholder": "Silva",
-      "nickname": "Apelido",
-      "nicknamePlaceholder": "{'@'}usuario",
+      "title": "Profile",
+      "firstName": "First name",
+      "firstNamePlaceholder": "John",
+      "lastName": "Last name",
+      "lastNamePlaceholder": "Doe",
+      "nickname": "Nickname",
+      "nicknamePlaceholder": "{'@'}username",
       "bio": "Bio",
-      "bioPlaceholder": "Sobre você...",
-      "save": "Salvar perfil"
+      "bioPlaceholder": "About you...",
+      "save": "Save profile"
     },
     "security": {
-      "title": "Segurança",
-      "twoFactor": "Autenticação de dois fatores",
-      "twoFactorHint": "Adicione uma camada extra com um app TOTP",
-      "enabled": "Ativado",
-      "disabled": "Desativado",
-      "manage": "Gerenciar",
-      "enable": "Ativar",
-      "activeSessions": "Sessões ativas",
-      "activeSessionsHint": "Dispositivos em que você está logado",
-      "view": "Ver",
-      "encryptionKeys": "Chaves de criptografia",
-      "encryptionKeysHint": "Veja seu número de segurança / verifique identidade"
+      "title": "Security",
+      "twoFactor": "Two-factor authentication",
+      "twoFactorHint": "Add extra security with a TOTP app",
+      "enabled": "Enabled",
+      "disabled": "Disabled",
+      "manage": "Manage",
+      "enable": "Enable",
+      "activeSessions": "Active sessions",
+      "activeSessionsHint": "Devices where you're logged in",
+      "view": "View",
+      "encryptionKeys": "Encryption keys",
+      "encryptionKeysHint": "View your safety number / verify identity"
     },
     "danger": {
-      "title": "Zona de risco",
-      "signOut": "Sair"
+      "title": "Danger zone",
+      "signOut": "Sign out"
     }
   },
   "chat": {
     "common": {
-      "directMessage": "Mensagem direta",
-      "group": "Grupo",
-      "unknown": "Desconhecido"
+      "directMessage": "Direct message",
+      "group": "Group",
+      "unknown": "Unknown"
     },
     "index": {
-      "title": "Selecione uma conversa",
-      "subtitle": "Escolha um chat existente na barra lateral ou inicie um novo",
-      "startConversation": "Iniciar nova conversa",
-      "securityTip": "Todas as mensagens têm criptografia ponta a ponta"
+      "title": "Select a conversation",
+      "subtitle": "Choose an existing chat from the sidebar or start a new one",
+      "startConversation": "Start new conversation",
+      "securityTip": "All messages are end-to-end encrypted"
     },
     "list": {
       "empty": {
-        "search": "Nenhuma conversa encontrada",
-        "default": "Ainda não há conversas",
-        "hint": "Inicie um novo chat para começar a conversar"
+        "search": "No conversations found",
+        "default": "No conversations yet",
+        "hint": "Start a new chat to begin messaging"
       },
       "time": {
-        "now": "agora",
+        "now": "now",
         "minutes": "{count}m",
         "hours": "{count}h"
       }
     },
     "conversation": {
-      "members": "{count} membros",
-      "searchMessages": "Buscar mensagens",
-      "info": "Informações da conversa",
-      "searchPlaceholder": "Buscar nesta conversa...",
-      "typingOne": "digitando...",
-      "typingMany": "{count} pessoas digitando...",
-      "today": "Hoje",
-      "yesterday": "Ontem",
-      "thisUser": "Este usuário",
-      "peerNoKeysNotification": "⚠️ {peerName} ainda não configurou as chaves de criptografia. As mensagens aparecerão criptografadas até ele entrar novamente."
+      "members": "{count} members",
+      "searchMessages": "Search messages",
+      "info": "Conversation info",
+      "searchPlaceholder": "Search in this conversation...",
+      "typingOne": "typing...",
+      "typingMany": "{count} people typing...",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "thisUser": "This user",
+      "peerNoKeysNotification": "⚠️ {peerName} has not set up encryption keys yet. Messages will appear encrypted until they log in again."
     },
     "input": {
-      "attachFile": "Anexar arquivo",
-      "placeholder": "Digite uma mensagem...",
+      "attachFile": "Attach file",
+      "placeholder": "Type a message...",
       "emoji": "Emoji",
-      "e2eNotice": "Criptografia ponta a ponta",
+      "e2eNotice": "End-to-end encrypted",
       "errors": {
-        "cannotFindPeer": "Não foi possível encontrar o usuário da conversa",
-        "peerNoKeys": "O outro usuário ainda não configurou as chaves de criptografia. Peça para ele entrar novamente e atualizar a página.",
-        "needPeerBundle": "É necessário o pacote de chaves do usuário para criar uma nova sessão"
+        "cannotFindPeer": "Could not find the conversation peer user",
+        "peerNoKeys": "The other user has not set up encryption keys yet. Ask them to log in again and refresh the page.",
+        "needPeerBundle": "A peer key bundle is required to establish a new session"
       }
     },
     "newModal": {
-      "title": "Nova conversa",
-      "addByEmail": "Adicionar por e-mail",
-      "emailPlaceholder": "contato{'@'}exemplo.com",
-      "startConversation": "Iniciar conversa",
-      "cancel": "Cancelar",
+      "title": "New conversation",
+      "addByEmail": "Add by email",
+      "emailPlaceholder": "contact{'@'}example.com",
+      "startConversation": "Start conversation",
+      "cancel": "Cancel",
       "errors": {
-        "invalidEmail": "Endereço de e-mail inválido",
-        "userNotFound": "Usuário não encontrado",
-        "selectUserFirst": "Selecione um usuário primeiro",
-        "noUserSelected": "Nenhum usuário selecionado",
-        "createFailed": "Falha ao criar conversa"
+        "invalidEmail": "Invalid email address",
+        "userNotFound": "User not found",
+        "selectUserFirst": "Please select a user first",
+        "noUserSelected": "No user selected",
+        "createFailed": "Failed to create conversation"
       }
     },
     "status": {
-      "sending": "Enviando...",
-      "sent": "Enviado",
-      "delivered": "Entregue",
-      "read": "Lida",
-      "failed": "Falhou"
+      "sending": "Sending...",
+      "sent": "Sent",
+      "delivered": "Delivered",
+      "read": "Read",
+      "failed": "Failed"
     },
     "message": {
-      "deleted": "Mensagem apagada",
-      "replyingTo": "Respondendo mensagem",
-      "encrypted": "Criptografada",
-      "encryptedWithIcon": "🔒 Mensagem criptografada",
-      "unableToDecrypt": "[Não foi possível descriptografar]",
-      "image": "Imagem",
-      "sharedImage": "Imagem compartilhada",
-      "photo": "📷 Foto",
-      "file": "📁 Arquivo",
-      "react": "Reagir",
-      "reply": "Responder",
-      "delete": "Excluir"
+      "deleted": "Message deleted",
+      "replyingTo": "Replying to message",
+      "encrypted": "Encrypted",
+      "encryptedWithIcon": "🔒 Encrypted message",
+      "unableToDecrypt": "[Unable to decrypt]",
+      "image": "Image",
+      "sharedImage": "Shared image",
+      "photo": "📷 Photo",
+      "file": "📁 File",
+      "react": "React",
+      "reply": "Reply",
+      "delete": "Delete"
     }
   }
 }

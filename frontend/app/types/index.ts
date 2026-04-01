@@ -92,6 +92,8 @@ export interface Message {
   deleted_at: string | null
   // Populated client-side after decryption
   plaintext?: string
+  // Frontend-only marker to prevent persisting/reusing fallback placeholders
+  is_placeholder?: boolean
   status?: 'sending' | 'sent' | 'delivered' | 'read' | 'error'
 }
 
