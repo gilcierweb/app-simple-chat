@@ -2,8 +2,8 @@
   <div>
     <!-- Empty State -->
     <div v-if="filtered.length === 0" class="px-4 py-12 text-center">
-      <div class="flex flex-col items-center gap-3 text-text-muted">
-        <span class="icon-[lucide--inbox] size-12 opacity-40"></span>
+      <div class="flex flex-col items-center gap-3 text-base-content/60">
+        <span class="icon-[tabler--inbox] size-12 opacity-40"></span>
         <p class="text-sm">{{ search ? 'No conversations found' : 'No conversations yet' }}</p>
         <p v-if="!search" class="text-xs">Start a new chat to begin messaging</p>
       </div>
@@ -32,20 +32,20 @@
       <!-- Info -->
       <div class="flex-1 min-w-0">
         <div class="flex items-center justify-between">
-          <span class="font-medium text-sm text-text-primary truncate">{{ convName(conv) }}</span>
-          <span class="text-xs text-text-muted flex-shrink-0 ml-2">
+          <span class="font-medium text-sm text-base-content truncate">{{ convName(conv) }}</span>
+          <span class="text-xs text-base-content/50 flex-shrink-0 ml-2">
             {{ formatLastActive(conv.updated_at) }}
           </span>
         </div>
         <div class="flex items-center justify-between mt-0.5">
-          <p class="text-xs text-text-secondary truncate">
+          <p class="text-xs text-base-content/70 truncate">
             <span v-if="conv.last_message?.deleted_at" class="italic flex items-center gap-1">
-              <span class="icon-[lucide--trash-2] size-3"></span>
+              <span class="icon-[tabler--trash] size-3"></span>
               Message deleted
             </span>
-            <span v-else-if="conv.last_message?.plaintext" class="text-text-secondary">{{ conv.last_message.plaintext }}</span>
-            <span v-else class="text-text-muted flex items-center gap-1">
-              <span class="icon-[lucide--lock] size-3"></span>
+            <span v-else-if="conv.last_message?.plaintext" class="text-base-content/70">{{ conv.last_message.plaintext }}</span>
+            <span v-else class="text-base-content/50 flex items-center gap-1">
+              <span class="icon-[tabler--lock] size-3"></span>
               Encrypted
             </span>
           </p>

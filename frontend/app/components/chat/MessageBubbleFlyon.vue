@@ -1,5 +1,5 @@
 <template>
-  <div :class="['chat', isOwn ? 'chat-sender' : 'chat-receiver', 'group']">
+  <div :class="['chat', isOwn ? 'chat-sender' : 'chat-receiver']">
     <!-- Avatar -->
     <div v-if="showAvatar" class="chat-avatar avatar">
       <div class="size-10 rounded-full bg-secondary flex items-center justify-center text-sm font-bold text-secondary-content">
@@ -12,8 +12,8 @@
 
     <!-- Header with sender info and time -->
     <div class="chat-header text-base-content">
-      <span v-if="!isOwn" class="font-medium text-sm">{{ senderName }}</span>
-      <time class="text-base-content/50 text-xs ml-1">{{ formatTime(message.created_at) }}</time>
+      <span v-if="!isOwn" class="font-medium">{{ senderName }}</span>
+      <time class="text-base-content/50 text-xs">{{ formatTime(message.created_at) }}</time>
     </div>
 
     <!-- Chat bubble -->
@@ -36,6 +36,7 @@
       <!-- Image -->
       <template v-else-if="message.message_type === 'image'">
         <div class="flex flex-col gap-2">
+          <span class="text-base-content/80 text-sm">📷 Photo</span>
           <button class="border-base-content/30 overflow-hidden rounded-md border" aria-label="Image">
             <img class="w-48 h-auto object-cover" src="https://cdn.flyonui.com/fy-assets/components/card/image-9.png" alt="Shared image" />
           </button>
@@ -44,23 +45,26 @@
 
       <!-- File -->
       <template v-else-if="message.message_type === 'file'">
-        <div class="bg-base-100 rounded-md">
-          <button class="flex items-center gap-2 px-3 py-2 max-sm:w-52">
-            <div class="flex flex-col gap-1 max-sm:w-5/6">
-              <div class="flex items-center">
-                <span class="icon-[tabler--file] text-primary me-2 size-5"></span>
-                <span class="text-base-content/80 truncate font-medium text-sm">document.pdf</span>
+        <div class="flex flex-col gap-2">
+          <span class="text-base-content/80 text-sm">📁 File</span>
+          <div class="bg-base-100 rounded-md">
+            <button class="flex items-center gap-2 px-3 py-2 max-sm:w-52">
+              <div class="flex flex-col gap-1 max-sm:w-5/6">
+                <div class="flex items-center">
+                  <span class="icon-[tabler--file] text-primary me-2 size-5"></span>
+                  <span class="text-base-content/80 truncate font-medium text-sm">document.pdf</span>
+                </div>
+                <div class="text-base-content/60 flex items-center gap-1 text-xs max-sm:hidden">
+                  2.4 MB
+                  <span class="icon-[tabler--circle-filled] mt-0.5 size-1"></span>
+                  PDF
+                </div>
               </div>
-              <div class="text-base-content/60 flex items-center gap-1 text-xs max-sm:hidden">
-                2.4 MB
-                <span class="icon-[tabler--circle-filled] mt-0.5 size-1"></span>
-                PDF
-              </div>
-            </div>
-            <span class="btn btn-text btn-circle btn-sm">
-              <span class="icon-[tabler--download] size-4"></span>
-            </span>
-          </button>
+              <span class="btn btn-text btn-circle btn-sm">
+                <span class="icon-[tabler--download] size-4"></span>
+              </span>
+            </button>
+          </div>
         </div>
       </template>
     </div>

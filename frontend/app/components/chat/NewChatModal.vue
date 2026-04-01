@@ -10,38 +10,35 @@
 
       <div class="form-control mb-4">
         <label class="label"><span class="label-text">Add by email</span></label>
-        <label class="input-group input-group-sm">
-          <span class="input-group-text">
-            <span class="icon-[lucide--mail] size-4"></span>
-          </span>
+        <div class="input input-bordered flex items-center gap-2 p-0">
+          <span class="icon-[tabler--mail] text-base-content/70 ms-3 size-5 shrink-0"></span>
           <input
             v-model="emailInput"
             type="email"
             placeholder="contact@example.com"
-            class="input input-filled flex-1"
+            class="grow bg-transparent border-none focus:ring-0 py-2"
             @keyup.enter="addEmail"
           />
-          <button class="btn btn-primary btn-sm" @click="addEmail" :disabled="!emailInput.trim() || loading">
+          <button class="btn btn-primary btn-sm me-1" @click="addEmail" :disabled="!emailInput.trim() || loading">
             <span v-if="loading" class="loading loading-spinner loading-xs"></span>
-            <span v-else class="icon-[lucide--plus] size-4"></span>
+            <span v-else class="icon-[tabler--plus] size-4"></span>
           </button>
-        </label>
+        </div>
       </div>
 
       <div v-if="selectedEmail" class="flex flex-wrap gap-2 mb-4">
         <div class="badge badge-primary badge-soft gap-1">
-          <span class="icon-[lucide--mail] size-3"></span>
+          <span class="icon-[tabler--mail] size-3"></span>
           {{ selectedEmail }}
         </div>
       </div>
 
       <div v-if="errorMessage" class="alert alert-soft alert-error text-sm py-2 mb-3">
-        <span class="icon-[lucide--alert-circle] size-4"></span>
+        <span class="icon-[tabler--alert-circle] size-4"></span>
         {{ errorMessage }}
       </div>
 
       <div class="modal-action mt-2">
-        <button class="btn btn-ghost btn-sm" @click="closeModal">Cancel</button>
         <button
           class="btn btn-primary btn-sm"
           :disabled="!selectedUserId || creating"
@@ -49,10 +46,11 @@
         >
           <span v-if="creating" class="loading loading-spinner loading-xs"></span>
           <span v-else class="flex items-center gap-1">
-            <span class="icon-[lucide--message-circle-plus] size-4"></span>
+            <span class="icon-[tabler--message-circle-plus] size-4"></span>
             Start conversation
           </span>
         </button>
+        <button class="btn btn-ghost btn-sm" @click="closeModal">Cancel</button>
       </div>
     </div>
     <div class="modal-backdrop" @click="closeModal"></div>
