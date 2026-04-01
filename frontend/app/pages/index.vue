@@ -9,25 +9,107 @@
           </div>
           <span class="font-display text-xl font-bold text-text-primary">AppSimpleChat</span>
         </div>
+
+        <!-- Desktop Menu -->
         <div class="hidden items-center gap-6 md:flex">
           <a href="#features" class="text-sm text-text-secondary hover:text-primary transition-colors">Recursos</a>
           <a href="#security" class="text-sm text-text-secondary hover:text-primary transition-colors">Segurança</a>
           <a href="#how-it-works" class="text-sm text-text-secondary hover:text-primary transition-colors">Como Funciona</a>
           <a href="#faq" class="text-sm text-text-secondary hover:text-primary transition-colors">FAQ</a>
         </div>
+
         <div class="flex items-center gap-3">
-          <button class="btn btn-ghost btn-sm hidden md:flex">Entrar</button>
-          <button class="btn btn-primary btn-sm">
+          <!-- Theme Toggle -->
+          <label class="swap swap-rotate hidden md:inline-grid">
+            <input type="checkbox" class="theme-controller" value="light" />
+            <span class="swap-off icon-[lucide--sun] size-5 text-text-secondary"></span>
+            <span class="swap-on icon-[lucide--moon] size-5 text-text-secondary"></span>
+          </label>
+
+          <NuxtLink to="/auth/login" class="btn btn-ghost btn-sm hidden md:flex">Entrar</NuxtLink>
+          <NuxtLink to="/auth/register" class="btn btn-primary btn-sm">
             <span class="icon-[lucide--rocket] size-4"></span>
             Começar
+          </NuxtLink>
+
+          <!-- Mobile Menu Button -->
+          <button class="btn btn-ghost btn-sm btn-square md:hidden" onclick="mobileMenuDrawer.showModal()">
+            <span class="icon-[lucide--menu] size-5"></span>
           </button>
         </div>
       </div>
     </nav>
 
+    <!-- Mobile Drawer -->
+    <dialog id="mobileMenuDrawer" class="drawer drawer-end">
+      <div class="drawer-content">
+        <button class="btn btn-ghost btn-sm btn-square absolute top-4 right-4" onclick="mobileMenuDrawer.close()">
+          <span class="icon-[lucide--x] size-5"></span>
+        </button>
+        <div class="p-6 space-y-6">
+          <!-- Logo -->
+          <div class="flex items-center gap-2 pb-4 border-b border-dark-800">
+            <div class="flex h-10 w-10 items-center justify-center rounded-xl bg-primary text-dark-950">
+              <span class="icon-[lucide--message-circle] size-6"></span>
+            </div>
+            <span class="font-display text-xl font-bold text-text-primary">Menu</span>
+          </div>
+
+          <!-- Menu Items -->
+          <nav class="menu menu-vertical gap-2">
+            <li>
+              <a href="#features" onclick="mobileMenuDrawer.close()" class="flex items-center gap-3 text-text-secondary hover:text-primary">
+                <span class="icon-[lucide--layers] size-5"></span>
+                Recursos
+              </a>
+            </li>
+            <li>
+              <a href="#security" onclick="mobileMenuDrawer.close()" class="flex items-center gap-3 text-text-secondary hover:text-primary">
+                <span class="icon-[lucide--shield] size-5"></span>
+                Segurança
+              </a>
+            </li>
+            <li>
+              <a href="#how-it-works" onclick="mobileMenuDrawer.close()" class="flex items-center gap-3 text-text-secondary hover:text-primary">
+                <span class="icon-[lucide--workflow] size-5"></span>
+                Como Funciona
+              </a>
+            </li>
+            <li>
+              <a href="#faq" onclick="mobileMenuDrawer.close()" class="flex items-center gap-3 text-text-secondary hover:text-primary">
+                <span class="icon-[lucide--help-circle] size-5"></span>
+                FAQ
+              </a>
+            </li>
+          </nav>
+
+          <!-- Actions -->
+          <div class="pt-4 border-t border-dark-800 space-y-3">
+            <NuxtLink to="/auth/login" class="btn btn-ghost w-full" onclick="mobileMenuDrawer.close()">
+              <span class="icon-[lucide--log-in] size-4"></span>
+              Entrar
+            </NuxtLink>
+            <NuxtLink to="/auth/register" class="btn btn-primary w-full" onclick="mobileMenuDrawer.close()">
+              <span class="icon-[lucide--rocket] size-4"></span>
+              Começar
+            </NuxtLink>
+          </div>
+        </div>
+      </div>
+      <form method="dialog" class="drawer-backdrop bg-dark-950/80">
+        <button>close</button>
+      </form>
+    </dialog>
+
     <!-- Section 1: Hero -->
     <section class="relative overflow-hidden pt-32 pb-20 lg:pt-40 lg:pb-32">
-      <div class="container mx-auto px-4">
+      <!-- Background decorative elements -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-20 left-10 w-72 h-72 bg-primary/5 rounded-full blur-3xl"></div>
+        <div class="absolute bottom-20 right-10 w-96 h-96 bg-brand-500/5 rounded-full blur-3xl"></div>
+      </div>
+
+      <div class="container mx-auto px-4 relative z-10">
         <div class="grid items-center gap-12 lg:grid-cols-2">
           <div class="space-y-8">
             <div class="inline-flex items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-4 py-1.5">
@@ -43,20 +125,26 @@
               mesmo que alguém consiga acesso ao banco.
             </p>
             <div class="flex flex-wrap gap-4">
-              <button class="btn btn-primary btn-lg">
+              <NuxtLink to="/auth/register" class="btn btn-primary btn-lg">
                 <span class="icon-[lucide--message-circle-plus] size-5"></span>
                 Iniciar Chat Agora
-              </button>
-              <button class="btn btn-outline btn-lg">
+              </NuxtLink>
+              <button class="btn btn-outline btn-primary btn-lg" onclick="githubModal.showModal()">
                 <span class="icon-[lucide--github] size-5"></span>
                 Código Fonte
               </button>
             </div>
             <div class="flex items-center gap-4 text-sm text-text-muted">
-              <div class="flex -space-x-2">
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-brand-600 text-xs font-medium text-white">JS</div>
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-accent-500 text-xs font-medium text-dark-950">MK</div>
-                <div class="flex h-8 w-8 items-center justify-center rounded-full bg-primary text-xs font-medium text-dark-950">AL</div>
+              <div class="flex -space-x-2 avatar-group">
+                <div class="avatar avatar-placeholder w-8 h-8">
+                  <div class="bg-brand-600 text-white text-xs">JS</div>
+                </div>
+                <div class="avatar avatar-placeholder w-8 h-8">
+                  <div class="bg-accent-500 text-dark-950 text-xs">MK</div>
+                </div>
+                <div class="avatar avatar-placeholder w-8 h-8">
+                  <div class="bg-primary text-dark-950 text-xs">AL</div>
+                </div>
               </div>
               <span>+2.5k usuários ativos</span>
             </div>
@@ -132,57 +220,57 @@
           </p>
         </div>
         <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10">
+              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
                 <span class="icon-[lucide--shield] size-6 text-primary"></span>
               </div>
-              <h3 class="card-title text-text-primary">Criptografia E2E</h3>
+              <h3 class="card-title text-text-primary group-hover:text-primary transition-colors">Criptografia E2E</h3>
               <p class="text-text-secondary">Mensagens criptografadas de ponta a ponta. Somente você e o destinatário podem ler.</p>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-brand-500/50 hover:shadow-lg hover:shadow-brand-500/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10">
+              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/10 group-hover:bg-brand-500/20 transition-colors">
                 <span class="icon-[lucide--database] size-6 text-brand-500"></span>
               </div>
-              <h3 class="card-title text-text-primary">DB Criptografado</h3>
+              <h3 class="card-title text-text-primary group-hover:text-brand-500 transition-colors">DB Criptografado</h3>
               <p class="text-text-secondary">Dados sensíveis criptografados no banco. Seguro mesmo com acesso não autorizado.</p>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-accent-500/50 hover:shadow-lg hover:shadow-accent-500/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent-500/10">
+              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-accent-500/10 group-hover:bg-accent-500/20 transition-colors">
                 <span class="icon-[lucide--key] size-6 text-accent-500"></span>
               </div>
-              <h3 class="card-title text-text-primary">Chaves Locais</h3>
+              <h3 class="card-title text-text-primary group-hover:text-accent-500 transition-colors">Chaves Locais</h3>
               <p class="text-text-secondary">Chaves de criptografia armazenadas localmente no navegador. Você controla seus dados.</p>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-warning/50 hover:shadow-lg hover:shadow-warning/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
+              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10 group-hover:bg-warning/20 transition-colors">
                 <span class="icon-[lucide--timer] size-6 text-warning"></span>
               </div>
-              <h3 class="card-title text-text-primary">Mensagens Temporárias</h3>
+              <h3 class="card-title text-text-primary group-hover:text-warning transition-colors">Mensagens Temporárias</h3>
               <p class="text-text-secondary">Configure auto-destruição de mensagens. Controle total sobre seu histórico.</p>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-info/50 hover:shadow-lg hover:shadow-info/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-info/10">
+              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-info/10 group-hover:bg-info/20 transition-colors">
                 <span class="icon-[lucide--file-image] size-6 text-info"></span>
               </div>
-              <h3 class="card-title text-text-primary">Mídia Segura</h3>
+              <h3 class="card-title text-text-primary group-hover:text-info transition-colors">Mídia Segura</h3>
               <p class="text-text-secondary">Fotos, vídeos e documentos com criptografia adicional. Compartilhe com confiança.</p>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-error/50 hover:shadow-lg hover:shadow-error/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-error/10">
+              <div class="mb-4 flex h-12 w-12 items-center justify-center rounded-xl bg-error/10 group-hover:bg-error/20 transition-colors">
                 <span class="icon-[lucide--user-x] size-6 text-error"></span>
               </div>
-              <h3 class="card-title text-text-primary">Anti-Replay</h3>
+              <h3 class="card-title text-text-primary group-hover:text-error transition-colors">Anti-Replay</h3>
               <p class="text-text-secondary">Proteção contra ataques de replay. Cada mensagem é única e verificável.</p>
             </div>
           </div>
@@ -237,22 +325,30 @@
               Criptografia no banco protege dados sensíveis em repouso.
             </p>
             <div class="mt-6 flex flex-wrap gap-3">
-              <span class="badge badge-outline badge-primary">
-                <span class="icon-[lucide--lock] size-3"></span>
-                TLS 1.3
-              </span>
-              <span class="badge badge-outline badge-primary">
-                <span class="icon-[lucide--fingerprint] size-3"></span>
-                SHA-256
-              </span>
-              <span class="badge badge-outline badge-primary">
-                <span class="icon-[lucide--key-round] size-3"></span>
-                RSA-4096
-              </span>
-              <span class="badge badge-outline badge-primary">
-                <span class="icon-[lucide--cpu] size-3"></span>
-                WebAssembly
-              </span>
+              <div class="tooltip tooltip-top" data-tip="Transport Layer Security 1.3 - Protocolo de criptografia em trânsito">
+                <span class="badge badge-outline badge-primary cursor-help">
+                  <span class="icon-[lucide--lock] size-3"></span>
+                  TLS 1.3
+                </span>
+              </div>
+              <div class="tooltip tooltip-top" data-tip="Secure Hash Algorithm 256-bit - Função hash criptográfica">
+                <span class="badge badge-outline badge-primary cursor-help">
+                  <span class="icon-[lucide--fingerprint] size-3"></span>
+                  SHA-256
+                </span>
+              </div>
+              <div class="tooltip tooltip-top" data-tip="Rivest-Shamir-Adleman 4096-bit - Criptografia assimétrica">
+                <span class="badge badge-outline badge-primary cursor-help">
+                  <span class="icon-[lucide--key-round] size-3"></span>
+                  RSA-4096
+                </span>
+              </div>
+              <div class="tooltip tooltip-top" data-tip="Código de alto desempenho rodando no navegador">
+                <span class="badge badge-outline badge-primary cursor-help">
+                  <span class="icon-[lucide--cpu] size-3"></span>
+                  WebAssembly
+                </span>
+              </div>
             </div>
           </div>
         </div>
@@ -272,21 +368,21 @@
           </p>
         </div>
         <div class="mt-12 grid gap-8 md:grid-cols-2">
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-orange-500/50 hover:shadow-lg hover:shadow-orange-500/10 transition-all duration-300 group">
             <div class="card-body">
               <div class="mb-4 flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-orange-500/20 group-hover:bg-orange-500/30 transition-colors">
                   <span class="icon-[lucide--server] size-6 text-orange-500"></span>
                 </div>
                 <div>
-                  <h3 class="card-title text-text-primary">Backend Rust</h3>
+                  <h3 class="card-title text-text-primary group-hover:text-orange-500 transition-colors">Backend Rust</h3>
                   <p class="text-sm text-text-muted">Segurança de memória sem GC</p>
                 </div>
               </div>
               <ul class="space-y-2 text-text-secondary">
                 <li class="flex items-center gap-2">
                   <span class="icon-[lucide--check] size-4 text-primary"></span>
-                  Axum - Web framework async
+                  Actix Web - Web framework async
                 </li>
                 <li class="flex items-center gap-2">
                   <span class="icon-[lucide--check] size-4 text-primary"></span>
@@ -294,7 +390,7 @@
                 </li>
                 <li class="flex items-center gap-2">
                   <span class="icon-[lucide--check] size-4 text-primary"></span>
-                  SQLx - Queries seguras em compile-time
+                  Diesel - Queries seguras em compile-time
                 </li>
                 <li class="flex items-center gap-2">
                   <span class="icon-[lucide--check] size-4 text-primary"></span>
@@ -303,14 +399,14 @@
               </ul>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-green-500/50 hover:shadow-lg hover:shadow-green-500/10 transition-all duration-300 group">
             <div class="card-body">
               <div class="mb-4 flex items-center gap-3">
-                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/20">
+                <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-green-500/20 group-hover:bg-green-500/30 transition-colors">
                   <span class="icon-[lucide--layout] size-6 text-green-500"></span>
                 </div>
                 <div>
-                  <h3 class="card-title text-text-primary">Frontend Nuxt 4</h3>
+                  <h3 class="card-title text-text-primary group-hover:text-green-500 transition-colors">Frontend Nuxt 4</h3>
                   <p class="text-sm text-text-muted">Vue 3 + Nitro SSR/SSG</p>
                 </div>
               </div>
@@ -339,9 +435,9 @@
     </section>
 
     <!-- Section 5: How It Works -->
-    <section id="how-it-works" class="py-20">
+    <section id="how-it-works" class="py-20 bg-dark-950">
       <div class="container mx-auto px-4">
-        <div class="mx-auto max-w-3xl text-center">
+        <div class="mx-auto max-w-3xl text-center mb-12">
           <span class="badge badge-primary badge-soft mb-4">Processo</span>
           <h2 class="font-display text-3xl font-bold text-text-primary lg:text-4xl">
             Como funciona a criptografia
@@ -350,35 +446,49 @@
             Entenda o fluxo de segurança em 4 passos simples
           </p>
         </div>
-        <div class="mt-12">
-          <div class="steps steps-vertical lg:steps-horizontal">
-            <div class="step step-primary">
-              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+        <div class="mt-12 grid gap-6 md:grid-cols-2 lg:grid-cols-4">
+          <!-- Step 1 -->
+          <div class="card bg-dark-900 border border-dark-800 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
+            <div class="card-body items-center text-center">
+              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20">
                 <span class="icon-[lucide--user-plus] size-8 text-primary"></span>
               </div>
-              <h4 class="font-medium text-text-primary">1. Registro</h4>
-              <p class="mt-2 max-w-xs text-sm text-text-secondary">Chaves RSA geradas no navegador. Private key nunca sai do dispositivo.</p>
+              <div class="badge badge-primary badge-soft mb-2">Passo 1</div>
+              <h4 class="card-title text-text-primary text-lg">Registro</h4>
+              <p class="text-text-secondary text-sm mt-2">Chaves RSA geradas no navegador. Private key nunca sai do dispositivo.</p>
             </div>
-            <div class="step step-primary">
-              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+          </div>
+          <!-- Step 2 -->
+          <div class="card bg-dark-900 border border-dark-800 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
+            <div class="card-body items-center text-center">
+              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20">
                 <span class="icon-[lucide--key] size-8 text-primary"></span>
               </div>
-              <h4 class="font-medium text-text-primary">2. Troca de Chaves</h4>
-              <p class="mt-2 max-w-xs text-sm text-text-secondary">ECDH estabelece chave de sessão única para cada conversa.</p>
+              <div class="badge badge-primary badge-soft mb-2">Passo 2</div>
+              <h4 class="card-title text-text-primary text-lg">Troca de Chaves</h4>
+              <p class="text-text-secondary text-sm mt-2">ECDH estabelece chave de sessão única para cada conversa.</p>
             </div>
-            <div class="step step-primary">
-              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+          </div>
+          <!-- Step 3 -->
+          <div class="card bg-dark-900 border border-dark-800 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
+            <div class="card-body items-center text-center">
+              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20">
                 <span class="icon-[lucide--message-square] size-8 text-primary"></span>
               </div>
-              <h4 class="font-medium text-text-primary">3. Envio Seguro</h4>
-              <p class="mt-2 max-w-xs text-sm text-text-secondary">Mensagem criptografada com AES-256-GCM antes de sair do dispositivo.</p>
+              <div class="badge badge-primary badge-soft mb-2">Passo 3</div>
+              <h4 class="card-title text-text-primary text-lg">Envio Seguro</h4>
+              <p class="text-text-secondary text-sm mt-2">Mensagem criptografada com AES-256-GCM antes de sair do dispositivo.</p>
             </div>
-            <div class="step step-primary">
-              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+          </div>
+          <!-- Step 4 -->
+          <div class="card bg-dark-900 border border-dark-800 hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300">
+            <div class="card-body items-center text-center">
+              <div class="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/20">
                 <span class="icon-[lucide--unlock] size-8 text-primary"></span>
               </div>
-              <h4 class="font-medium text-text-primary">4. Descriptografia</h4>
-              <p class="mt-2 max-w-xs text-sm text-text-secondary">Apenas o destinatário com a chave privada pode ler a mensagem.</p>
+              <div class="badge badge-primary badge-soft mb-2">Passo 4</div>
+              <h4 class="card-title text-text-primary text-lg">Descriptografia</h4>
+              <p class="text-text-secondary text-sm mt-2">Apenas o destinatário com a chave privada pode ler a mensagem.</p>
             </div>
           </div>
         </div>
@@ -459,40 +569,40 @@
           </p>
         </div>
         <div class="mt-12 grid gap-6 md:grid-cols-3">
-          <div class="card bg-dark-900 border border-dark-800 text-center">
+          <div class="card bg-dark-900 border border-dark-800 text-center hover:border-primary/50 hover:shadow-lg hover:shadow-primary/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10">
+              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-primary/10 group-hover:bg-primary/20 transition-colors">
                 <span class="icon-[lucide--globe] size-8 text-primary"></span>
               </div>
-              <h3 class="card-title justify-center text-text-primary">Web App</h3>
+              <h3 class="card-title justify-center text-text-primary group-hover:text-primary transition-colors">Web App</h3>
               <p class="text-text-secondary text-sm">Acesse de qualquer navegador moderno</p>
-              <button class="btn btn-primary btn-soft mt-4 w-full">
+              <NuxtLink to="/auth/register" class="btn btn-primary btn-soft mt-4 w-full">
                 <span class="icon-[lucide--external-link] size-4"></span>
                 Abrir App
-              </button>
+              </NuxtLink>
             </div>
           </div>
-          <div class="card bg-dark-900 border border-dark-800 text-center">
+          <div class="card bg-dark-900 border border-dark-800 text-center hover:border-brand-500/50 hover:shadow-lg hover:shadow-brand-500/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500/10">
+              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-brand-500/10 group-hover:bg-brand-500/20 transition-colors">
                 <span class="icon-[lucide--smartphone] size-8 text-brand-500"></span>
               </div>
-              <h3 class="card-title justify-center text-text-primary">PWA</h3>
+              <h3 class="card-title justify-center text-text-primary group-hover:text-brand-500 transition-colors">PWA</h3>
               <p class="text-text-secondary text-sm">Instale como app no celular</p>
-              <button class="btn btn-primary btn-soft mt-4 w-full">
+              <button class="btn btn-primary btn-soft mt-4 w-full" onclick="pwaModal.showModal()">
                 <span class="icon-[lucide--download] size-4"></span>
                 Instalar
               </button>
             </div>
           </div>
-          <div class="card bg-dark-900 border border-dark-800 text-center">
+          <div class="card bg-dark-900 border border-dark-800 text-center hover:border-accent-500/50 hover:shadow-lg hover:shadow-accent-500/10 transition-all duration-300 group">
             <div class="card-body">
-              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-500/10">
+              <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-accent-500/10 group-hover:bg-accent-500/20 transition-colors">
                 <span class="icon-[lucide--code-2] size-8 text-accent-500"></span>
               </div>
-              <h3 class="card-title justify-center text-text-primary">Self-Host</h3>
+              <h3 class="card-title justify-center text-text-primary group-hover:text-accent-500 transition-colors">Self-Host</h3>
               <p class="text-text-secondary text-sm">Hospede seu próprio servidor</p>
-              <button class="btn btn-primary btn-soft mt-4 w-full">
+              <button class="btn btn-primary btn-soft mt-4 w-full" onclick="githubModal.showModal()">
                 <span class="icon-[lucide--github] size-4"></span>
                 GitHub
               </button>
@@ -512,7 +622,7 @@
           </h2>
         </div>
         <div class="mt-12 grid gap-6 md:grid-cols-3">
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
             <div class="card-body">
               <div class="flex gap-1 mb-4">
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
@@ -521,7 +631,7 @@
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
               </div>
-              <p class="text-text-secondary mb-4">"Finalmente um chat que entende de verdade sobre segurança. A criptografia no banco é um diferencial enorme."</p>
+              <p class="text-text-secondary mb-4 italic">"Finalmente um chat que entende de verdade sobre segurança. A criptografia no banco é um diferencial enorme."</p>
               <div class="flex items-center gap-3">
                 <div class="avatar">
                   <div class="w-10 rounded-full">
@@ -535,7 +645,7 @@
               </div>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
             <div class="card-body">
               <div class="flex gap-1 mb-4">
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
@@ -544,7 +654,7 @@
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
               </div>
-              <p class="text-text-secondary mb-4">"Uso para comunicação interna da equipe. A performance do Rust + segurança da criptografia E2E é perfeita."</p>
+              <p class="text-text-secondary mb-4 italic">"Uso para comunicação interna da equipe. A performance do Rust + segurança da criptografia E2E é perfeita."</p>
               <div class="flex items-center gap-3">
                 <div class="avatar">
                   <div class="w-10 rounded-full">
@@ -558,7 +668,7 @@
               </div>
             </div>
           </div>
-          <div class="card bg-dark-950 border border-dark-800">
+          <div class="card bg-dark-950 border border-dark-800 hover:border-primary/30 hover:shadow-lg hover:shadow-primary/5 transition-all duration-300">
             <div class="card-body">
               <div class="flex gap-1 mb-4">
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
@@ -567,7 +677,7 @@
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
                 <span class="icon-[lucide--star] size-4 text-warning fill-warning"></span>
               </div>
-              <p class="text-text-secondary mb-4">"O código aberto me deu confiança. Pude auditar a implementação da criptografia e tudo está impecável."</p>
+              <p class="text-text-secondary mb-4 italic">"O código aberto me deu confiança. Pude auditar a implementação da criptografia e tudo está impecável."</p>
               <div class="flex items-center gap-3">
                 <div class="avatar">
                   <div class="w-10 rounded-full">
@@ -595,59 +705,120 @@
               Perguntas frequentes
             </h2>
           </div>
-          <div class="join join-vertical w-full">
-            <div class="collapse collapse-arrow join-item bg-dark-900 border border-dark-800">
-              <input type="radio" name="faq-accordion" />
-              <div class="collapse-title font-medium text-text-primary">
-                Como a criptografia end-to-end funciona?
-              </div>
-              <div class="collapse-content text-text-secondary">
-                <p>As mensagens são criptografadas no seu dispositivo antes de serem enviadas. Apenas o destinatário possui a chave privada necessária para descriptografar. Nossos servidores processam apenas dados cifrados, sem acesso ao conteúdo.</p>
-              </div>
-            </div>
-            <div class="collapse collapse-arrow join-item bg-dark-900 border border-dark-800 border-t-0">
-              <input type="radio" name="faq-accordion" />
-              <div class="collapse-title font-medium text-text-primary">
-                O que acontece se o banco de dados for comprometido?
-              </div>
-              <div class="collapse-content text-text-secondary">
-                <p>Todos os dados sensíveis são criptografados antes de serem armazenados. Mesmo com acesso completo ao banco, um invasor só veria dados cifrados ilegíveis. Cada conversa tem chaves únicas, tornando a quebra praticamente impossível.</p>
-              </div>
-            </div>
-            <div class="collapse collapse-arrow join-item bg-dark-900 border border-dark-800 border-t-0">
-              <input type="radio" name="faq-accordion" />
-              <div class="collapse-title font-medium text-text-primary">
-                As chaves de criptografia ficam onde?
-              </div>
-              <div class="collapse-content text-text-secondary">
-                <p>As chaves privadas são geradas e armazenadas localmente no seu navegador usando IndexedDB com criptografia adicional. Nunca transmitimos chaves privadas para o servidor. Você pode exportar suas chaves para backup.</p>
+
+          <!-- Accordion FlyonUI 2 -->
+          <div class="accordion accordion-shadow *:accordion-item-active:shadow-md">
+            <!-- Item 1 -->
+            <div class="accordion-item accordion-item-active:scale-[1.02] accordion-item-active:mb-3 active transition-transform ease-in duration-300 delay-[1ms] bg-dark-900 border border-dark-800 rounded-lg" id="faq-e2e">
+              <button class="accordion-toggle inline-flex items-center gap-x-4 px-5 py-4 text-start w-full" aria-controls="faq-e2e-collapse" aria-expanded="true">
+                <span class="icon-[lucide--plus] accordion-item-active:hidden text-primary size-5 block shrink-0"></span>
+                <span class="icon-[lucide--minus] accordion-item-active:block text-primary size-5 hidden shrink-0"></span>
+                <span class="font-medium text-text-primary flex items-center gap-3">
+                  <span class="icon-[lucide--shield-question] size-5 text-primary"></span>
+                  Como a criptografia end-to-end funciona?
+                </span>
+              </button>
+              <div id="faq-e2e-collapse" class="accordion-content w-full overflow-hidden transition-[height] duration-300" aria-labelledby="faq-e2e" role="region">
+                <div class="px-5 pb-4">
+                  <p class="text-text-secondary pl-8">
+                    As mensagens são criptografadas no seu dispositivo antes de serem enviadas. Apenas o destinatário possui a chave privada necessária para descriptografar. Nossos servidores processam apenas dados cifrados, sem acesso ao conteúdo.
+                  </p>
+                </div>
               </div>
             </div>
-            <div class="collapse collapse-arrow join-item bg-dark-900 border border-dark-800 border-t-0">
-              <input type="radio" name="faq-accordion" />
-              <div class="collapse-title font-medium text-text-primary">
-                É código aberto?
-              </div>
-              <div class="collapse-content text-text-secondary">
-                <p>Sim! Todo o código está disponível no GitHub sob licença MIT. Isso permite auditorias de segurança pela comunidade e garante transparência sobre como suas mensagens são processadas.</p>
+
+            <!-- Item 2 -->
+            <div class="accordion-item accordion-item-active:scale-[1.02] accordion-item-active:my-3 transition-transform ease-in duration-300 delay-[1ms] bg-dark-900 border border-dark-800 rounded-lg" id="faq-db">
+              <button class="accordion-toggle inline-flex items-center gap-x-4 px-5 py-4 text-start w-full" aria-controls="faq-db-collapse" aria-expanded="false">
+                <span class="icon-[lucide--plus] accordion-item-active:hidden text-primary size-5 block shrink-0"></span>
+                <span class="icon-[lucide--minus] accordion-item-active:block text-primary size-5 hidden shrink-0"></span>
+                <span class="font-medium text-text-primary flex items-center gap-3">
+                  <span class="icon-[lucide--database-lock] size-5 text-primary"></span>
+                  O que acontece se o banco de dados for comprometido?
+                </span>
+              </button>
+              <div id="faq-db-collapse" class="accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="faq-db" role="region">
+                <div class="px-5 pb-4">
+                  <p class="text-text-secondary pl-8">
+                    Todos os dados sensíveis são criptografados antes de serem armazenados. Mesmo com acesso completo ao banco, um invasor só veria dados cifrados ilegíveis. Cada conversa tem chaves únicas, tornando a quebra praticamente impossível.
+                  </p>
+                </div>
               </div>
             </div>
-            <div class="collapse collapse-arrow join-item bg-dark-900 border border-dark-800 border-t-0">
-              <input type="radio" name="faq-accordion" />
-              <div class="collapse-title font-medium text-text-primary">
-                Posso hospedar meu próprio servidor?
-              </div>
-              <div class="collapse-content text-text-secondary">
-                <p>Sim! Fornecemos Docker Compose e instruções detalhadas para self-hosting. Você pode rodar em sua própria infraestrutura mantendo todas as funcionalidades de segurança.</p>
+
+            <!-- Item 3 -->
+            <div class="accordion-item accordion-item-active:scale-[1.02] accordion-item-active:my-3 transition-transform ease-in duration-300 delay-[1ms] bg-dark-900 border border-dark-800 rounded-lg" id="faq-keys">
+              <button class="accordion-toggle inline-flex items-center gap-x-4 px-5 py-4 text-start w-full" aria-controls="faq-keys-collapse" aria-expanded="false">
+                <span class="icon-[lucide--plus] accordion-item-active:hidden text-primary size-5 block shrink-0"></span>
+                <span class="icon-[lucide--minus] accordion-item-active:block text-primary size-5 hidden shrink-0"></span>
+                <span class="font-medium text-text-primary flex items-center gap-3">
+                  <span class="icon-[lucide--key-round] size-5 text-primary"></span>
+                  As chaves de criptografia ficam onde?
+                </span>
+              </button>
+              <div id="faq-keys-collapse" class="accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="faq-keys" role="region">
+                <div class="px-5 pb-4">
+                  <p class="text-text-secondary pl-8">
+                    As chaves privadas são geradas e armazenadas localmente no seu navegador usando IndexedDB com criptografia adicional. Nunca transmitimos chaves privadas para o servidor. Você pode exportar suas chaves para backup.
+                  </p>
+                </div>
               </div>
             </div>
-            <div class="collapse collapse-arrow join-item bg-dark-900 border border-dark-800 border-t-0">
-              <input type="radio" name="faq-accordion" />
-              <div class="collapse-title font-medium text-text-primary">
-                Há limite de mensagens ou usuários?
+
+            <!-- Item 4 -->
+            <div class="accordion-item accordion-item-active:scale-[1.02] accordion-item-active:my-3 transition-transform ease-in duration-300 delay-[1ms] bg-dark-900 border border-dark-800 rounded-lg" id="faq-opensource">
+              <button class="accordion-toggle inline-flex items-center gap-x-4 px-5 py-4 text-start w-full" aria-controls="faq-opensource-collapse" aria-expanded="false">
+                <span class="icon-[lucide--plus] accordion-item-active:hidden text-primary size-5 block shrink-0"></span>
+                <span class="icon-[lucide--minus] accordion-item-active:block text-primary size-5 hidden shrink-0"></span>
+                <span class="font-medium text-text-primary flex items-center gap-3">
+                  <span class="icon-[lucide--code-2] size-5 text-primary"></span>
+                  É código aberto?
+                </span>
+              </button>
+              <div id="faq-opensource-collapse" class="accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="faq-opensource" role="region">
+                <div class="px-5 pb-4">
+                  <p class="text-text-secondary pl-8">
+                    Sim! Todo o código está disponível no GitHub sob licença MIT. Isso permite auditorias de segurança pela comunidade e garante transparência sobre como suas mensagens são processadas.
+                  </p>
+                </div>
               </div>
-              <div class="collapse-content text-text-secondary">
-                <p>Não há limites artificiais. A capacidade depende apenas dos recursos do servidor. Criptografia pode adicionar pequena latência, mas mantém performance excelente mesmo com milhares de usuários ativos.</p>
+            </div>
+
+            <!-- Item 5 -->
+            <div class="accordion-item accordion-item-active:scale-[1.02] accordion-item-active:my-3 transition-transform ease-in duration-300 delay-[1ms] bg-dark-900 border border-dark-800 rounded-lg" id="faq-selfhost">
+              <button class="accordion-toggle inline-flex items-center gap-x-4 px-5 py-4 text-start w-full" aria-controls="faq-selfhost-collapse" aria-expanded="false">
+                <span class="icon-[lucide--plus] accordion-item-active:hidden text-primary size-5 block shrink-0"></span>
+                <span class="icon-[lucide--minus] accordion-item-active:block text-primary size-5 hidden shrink-0"></span>
+                <span class="font-medium text-text-primary flex items-center gap-3">
+                  <span class="icon-[lucide--server-cog] size-5 text-primary"></span>
+                  Posso hospedar meu próprio servidor?
+                </span>
+              </button>
+              <div id="faq-selfhost-collapse" class="accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="faq-selfhost" role="region">
+                <div class="px-5 pb-4">
+                  <p class="text-text-secondary pl-8">
+                    Sim! Fornecemos Docker Compose e instruções detalhadas para self-hosting. Você pode rodar em sua própria infraestrutura mantendo todas as funcionalidades de segurança.
+                  </p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Item 6 -->
+            <div class="accordion-item accordion-item-active:scale-[1.02] accordion-item-active:mt-3 transition-transform ease-in duration-300 delay-[1ms] bg-dark-900 border border-dark-800 rounded-lg" id="faq-limits">
+              <button class="accordion-toggle inline-flex items-center gap-x-4 px-5 py-4 text-start w-full" aria-controls="faq-limits-collapse" aria-expanded="false">
+                <span class="icon-[lucide--plus] accordion-item-active:hidden text-primary size-5 block shrink-0"></span>
+                <span class="icon-[lucide--minus] accordion-item-active:block text-primary size-5 hidden shrink-0"></span>
+                <span class="font-medium text-text-primary flex items-center gap-3">
+                  <span class="icon-[lucide--gauge] size-5 text-primary"></span>
+                  Há limite de mensagens ou usuários?
+                </span>
+              </button>
+              <div id="faq-limits-collapse" class="accordion-content hidden w-full overflow-hidden transition-[height] duration-300" aria-labelledby="faq-limits" role="region">
+                <div class="px-5 pb-4">
+                  <p class="text-text-secondary pl-8">
+                    Não há limites artificiais. A capacidade depende apenas dos recursos do servidor. Criptografia pode adicionar pequena latência, mas mantém performance excelente mesmo com milhares de usuários ativos.
+                  </p>
+                </div>
               </div>
             </div>
           </div>
@@ -671,11 +842,11 @@
               Sem compromissos, sem custos, 100% open source.
             </p>
             <div class="mt-8 flex flex-wrap justify-center gap-4">
-              <button class="btn btn-primary btn-lg">
+              <NuxtLink to="/auth/register" class="btn btn-primary btn-lg">
                 <span class="icon-[lucide--rocket] size-5"></span>
                 Começar Gratuitamente
-              </button>
-              <button class="btn btn-outline btn-lg">
+              </NuxtLink>
+              <button class="btn btn-outline btn-primary btn-lg" onclick="docsModal.showModal()">
                 <span class="icon-[lucide--book-open] size-5"></span>
                 Documentação
               </button>
@@ -748,9 +919,138 @@
       </div>
     </footer>
   </main>
+
+  <!-- Modals -->
+  <!-- PWA Modal -->
+  <dialog id="pwaModal" class="modal">
+    <div class="modal-box bg-dark-900 border border-dark-800 max-w-md">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/20">
+          <span class="icon-[lucide--smartphone] size-6 text-brand-500"></span>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-bold text-text-primary">Instalar PWA</h3>
+          <p class="text-sm text-text-muted">Progressive Web App</p>
+        </div>
+      </div>
+      <div class="space-y-4 text-text-secondary">
+        <p>Para instalar o AppSimpleChat no seu dispositivo:</p>
+        <ol class="list-decimal list-inside space-y-2 text-sm">
+          <li>Abra o app no navegador Chrome/Edge/Safari</li>
+          <li>Clique no ícone de instalação na barra de endereço</li>
+          <li>Confirme a instalação</li>
+          <li>O app aparecerá na home screen</li>
+        </ol>
+        <div class="alert alert-soft alert-info mt-4">
+          <span class="icon-[lucide--info] size-4"></span>
+          <span class="text-sm">Funciona offline e recebe notificações push!</span>
+        </div>
+      </div>
+      <div class="modal-action mt-6">
+        <button class="btn btn-primary" onclick="pwaModal.close()">Entendi</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-dark-950/80">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- GitHub Modal -->
+  <dialog id="githubModal" class="modal">
+    <div class="modal-box bg-dark-900 border border-dark-800 max-w-md">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-500/20">
+          <span class="icon-[lucide--github] size-6 text-accent-500"></span>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-bold text-text-primary">Código Aberto</h3>
+          <p class="text-sm text-text-muted">Self-hosting disponível</p>
+        </div>
+      </div>
+      <div class="space-y-4 text-text-secondary">
+        <p>O AppSimpleChat é 100% open source sob licença MIT.</p>
+        <div class="space-y-3 text-sm">
+          <div class="flex items-center gap-3">
+            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+            <span>Código fonte completo no GitHub</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+            <span>Docker Compose incluído</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+            <span>Documentação de self-hosting</span>
+          </div>
+          <div class="flex items-center gap-3">
+            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+            <span>Contribuições bem-vindas!</span>
+          </div>
+        </div>
+      </div>
+      <div class="modal-action mt-6 gap-2">
+        <button class="btn btn-ghost" onclick="githubModal.close()">Fechar</button>
+        <a href="https://github.com" target="_blank" class="btn btn-primary">
+          <span class="icon-[lucide--external-link] size-4"></span>
+          Ver GitHub
+        </a>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-dark-950/80">
+      <button>close</button>
+    </form>
+  </dialog>
+
+  <!-- Docs Modal -->
+  <dialog id="docsModal" class="modal">
+    <div class="modal-box bg-dark-900 border border-dark-800 max-w-md">
+      <div class="flex items-center gap-3 mb-4">
+        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
+          <span class="icon-[lucide--book-open] size-6 text-primary"></span>
+        </div>
+        <div>
+          <h3 class="font-display text-xl font-bold text-text-primary">Documentação</h3>
+          <p class="text-sm text-text-muted">Guia completo do app</p>
+        </div>
+      </div>
+      <div class="space-y-3 text-text-secondary text-sm">
+        <div class="menu menu-vertical gap-1">
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+            <span class="icon-[lucide--rocket] size-4 text-primary"></span>
+            <span>Guia de Início Rápido</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+            <span class="icon-[lucide--shield] size-4 text-primary"></span>
+            <span>Arquitetura de Segurança</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+            <span class="icon-[lucide--key] size-4 text-primary"></span>
+            <span>Gerenciamento de Chaves</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+            <span class="icon-[lucide--server] size-4 text-primary"></span>
+            <span>Self-Hosting Guide</span>
+          </a>
+          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+            <span class="icon-[lucide--code-2] size-4 text-primary"></span>
+            <span>API Reference</span>
+          </a>
+        </div>
+      </div>
+      <div class="modal-action mt-6">
+        <button class="btn btn-primary" onclick="docsModal.close()">Fechar</button>
+      </div>
+    </div>
+    <form method="dialog" class="modal-backdrop bg-dark-950/80">
+      <button>close</button>
+    </form>
+  </dialog>
 </template>
 
 <script setup>
+definePageMeta({
+  layout: 'landing'
+})
 useHead({
   title: 'AppSimpleChat - Chat Seguro com Criptografia End-to-End',
   meta: [

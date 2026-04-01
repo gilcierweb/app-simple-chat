@@ -23,28 +23,33 @@
     --color-base-100: oklch(16.5% 0.012 265); /* #0F1115 */
     --color-base-200: oklch(21.5% 0.015 265); /* #1A1D24 */
     --color-base-300: oklch(28% 0.018 265); /* #2C2F36 */
-    --color-base-content: oklch(95% 0.005 265); /* #EAECEE */
+    --color-base-content: oklch(95% 0.005 265); /* #EAECEE - Garante texto claro em fundo escuro */
 
     /* Brand Colors (Verde Primária) */
     --color-primary: oklch(72% 0.22 145); /* #2ECC71 */
-    --color-primary-content: oklch(16.5% 0.012 265); /* #0F1115 */
+    --color-primary-content: oklch(16.5% 0.012 265); /* #0F1115 - Texto escuro em botão primário */
 
     /* Secondary (Verde Escuro) */
     --color-secondary: oklch(65% 0.2 145); /* #27AE60 */
-    --color-secondary-content: oklch(16.5% 0.012 265); /* #0F1115 */
+    --color-secondary-content: oklch(100% 0 0); /* #FFFFFF - Texto claro */
 
     /* Accent (Verde Claro) */
     --color-accent: oklch(78% 0.18 145); /* #58D68D */
+    --color-accent-content: oklch(16.5% 0.012 265); /* #0F1115 - Texto escuro */
 
     /* Neutral */
-    --color-neutral: oklch(21.5% 0.015 265); /* #1A1D24 */
-    --color-neutral-content: oklch(72% 0.01 265); /* #A6ACAF */
+    --color-neutral: oklch(35% 0.02 265); /* #4A4E57 - Mais claro para melhor contraste */
+    --color-neutral-content: oklch(95% 0.005 265); /* #EAECEE - Texto claro */
 
-    /* States */
-    --color-info: oklch(70% 0.15 220);
+    /* States - Cores mais saturadas para melhor visibilidade */
+    --color-info: oklch(75% 0.18 220); /* Azul mais claro */
+    --color-info-content: oklch(16.5% 0.012 265); /* Texto escuro */
     --color-success: oklch(72% 0.22 145); /* #2ECC71 */
-    --color-warning: oklch(82% 0.18 95); /* #F1C40F */
-    --color-error: oklch(58% 0.22 25); /* #E74C3C */
+    --color-success-content: oklch(16.5% 0.012 265); /* Texto escuro */
+    --color-warning: oklch(85% 0.2 95); /* Amarelo mais claro */
+    --color-warning-content: oklch(16.5% 0.012 265); /* Texto escuro */
+    --color-error: oklch(65% 0.22 25); /* Vermelho mais vibrante */
+    --color-error-content: oklch(100% 0 0); /* Texto claro */
 
     --radius-selector: 1rem;
     --radius-field: 0.75rem;
@@ -119,4 +124,46 @@ h1, h2, h3, h4, h5, h6 {
     font-family: var(--font-display);
     font-weight: 600;
     letter-spacing: -0.01em;
+}
+
+/* -- Button Contrast Fixes for Dark Mode  */
+.btn-outline {
+    border-color: var(--color-base-content);
+    color: var(--color-base-content);
+}
+
+.btn-outline:hover {
+    background-color: var(--color-base-content);
+    color: var(--color-base-100);
+}
+
+/* Ensure all buttons have visible text */
+.btn-outline.btn-primary {
+    border-color: var(--color-primary);
+    color: var(--color-primary);
+}
+
+.btn-outline.btn-primary:hover {
+    background-color: var(--color-primary);
+    color: var(--color-primary-content);
+}
+
+/* Focus states for accessibility */
+.btn:focus-visible {
+    outline: 2px solid var(--color-primary);
+    outline-offset: 2px;
+}
+
+/* Ensure text visibility on all interactive elements */
+.input,
+.textarea,
+.select {
+    color: var(--color-base-content);
+    background-color: var(--color-base-200);
+}
+
+.input::placeholder,
+.textarea::placeholder {
+    color: var(--color-neutral-content);
+    opacity: 0.6;
 }
