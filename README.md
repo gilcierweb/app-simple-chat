@@ -9,6 +9,7 @@ A full-stack, real-time chat application with end-to-end encryption (E2EE), buil
 - [Tech Stack](#tech-stack)
 - [High-Level Architecture](#high-level-architecture)
 - [Request and Message Flows](#request-and-message-flows)
+- [Chat Crypto Model (Server vs Browser)](#chat-crypto-model-server-vs-browser)
 - [Repository Structure (Tree)](#repository-structure-tree)
 - [Prerequisites](#prerequisites)
 - [Environment Variables](#environment-variables)
@@ -95,6 +96,42 @@ Important note about infrastructure:
 2. Frontend fetches server messages (`GET /api/v1/messages/{conversation_id}`)
 3. Frontend attempts local decryption/session resolution
 4. Frontend renders decrypted messages and updates local cache
+
+## Chat Crypto Model (Server vs Browser)
+
+### Browser (Frontend) responsibilities
+
+- Generates and stores user key material locally.
+- Fetches peer key bundles from `/api/v1/keys/{user_id}`.
+- Creates/derives session keys for each peer conversation.
+- Encrypts plaintext before sending.
+- Decrypts ciphertext after receiving from REST/WebSocket.
+- Persists local decrypted cache (for UX/performance), not on server.
+
+### Server (Backend) responsibilities
+
+- Authenticates and authorizes users for conversations.
+- Stores only encrypted message payload (`ciphertext`) + metadata (`iv`, `sender_id`, timestamps).
+- Delivers encrypted payloads through REST and WebSocket.
+- Stores and serves public key bundles (`/keys` endpoints).
+- Does not need plaintext to route, persist, or broadcast messages.
+
+### End-to-end message lifecycle
+
+1. User A types a message in browser.
+2. Frontend encrypts message with peer/session key.
+3. Frontend sends encrypted payload to backend.
+4. Backend persists ciphertext in Postgres.
+5. Backend broadcasts `new_message` event in conversation room.
+6. User B receives encrypted payload and decrypts in browser.
+7. UI renders plaintext only on client side.
+
+### Security boundaries
+
+- Backend/database compromise should expose ciphertext, not plaintext history.
+- Transport layer still requires HTTPS/WSS in production.
+- Local browser storage must be treated as sensitive user data.
+- If peer key/session is unavailable, the UI should keep message encrypted or show a safe fallback state.
 
 ## Repository Structure (Tree)
 
