@@ -115,21 +115,15 @@ async function sendMessage() {
     // Encrypt message client-side
     console.log('Getting session key for:', props.conversationId, 'peer:', peerUserId)
     
-    // Try to get session key for sending, will fetch bundle if not exists
-    let sessionKey = await keyStore.getSessionKey(props.conversationId, peerUserId).catch(() => null)
-    
+    // Always fetch latest peer bundle before encrypting.
+    // This avoids using stale cached session keys after peer key rotation.
+    const bundle = await keyStore.fetchPeerBundle(peerUserId)
+    if (!bundle) {
+      throw new Error(t('chat.input.errors.peerNoKeys'))
+    }
+    const sessionKey = await keyStore.getSessionKey(props.conversationId, peerUserId, bundle).catch(() => null)
     if (!sessionKey) {
-      console.log('No session key - creating session')
-      await keyStore.ensureSession(props.conversationId, peerUserId)
-      sessionKey = await keyStore.getSessionKey(props.conversationId, peerUserId).catch(() => null)
-      if (!sessionKey) {
-        // Check if peer bundle exists
-        const bundle = await keyStore.fetchPeerBundle(peerUserId)
-        if (!bundle) {
-          throw new Error(t('chat.input.errors.peerNoKeys'))
-        }
-        throw new Error(t('chat.input.errors.needPeerBundle'))
-      }
+      throw new Error(t('chat.input.errors.needPeerBundle'))
     }
     
     console.log('Session key obtained:', sessionKey)

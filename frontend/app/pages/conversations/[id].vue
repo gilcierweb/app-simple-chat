@@ -186,11 +186,17 @@ async function loadMessages() {
     // Ensure session key exists before fetching messages
     const peerUserId = conversation.value?.members?.find(m => m.user_id !== authStore.user?.id)?.user_id
     console.log('[DEBUG] Peer user ID for loadMessages:', peerUserId)
+    let peerBundle: {
+      identity_key: string
+      signed_prekey: string
+      one_time_prekey: string | null
+    } | null = null
+
     if (peerUserId) {
       console.log('[DEBUG] Ensuring session exists...')
       
       // Check if peer has keys
-      const peerBundle = await keyStore.fetchPeerBundle(peerUserId)
+      peerBundle = await keyStore.fetchPeerBundle(peerUserId)
       console.log('[DEBUG] Peer bundle exists:', !!peerBundle)
       if (!peerBundle) {
         console.log('[DEBUG] Peer user has not uploaded encryption keys yet')
@@ -224,17 +230,23 @@ async function loadMessages() {
         convStore.setMessages(conversationId, updatedLocal)
       }
       
-      await keyStore.ensureSession(conversationId, peerUserId).catch(console.error)
+      if (peerBundle) {
+        await keyStore.getSessionKey(conversationId, peerUserId, peerBundle).catch(console.error)
+      } else {
+        await keyStore.ensureSession(conversationId, peerUserId).catch(console.error)
+      }
     }
 
     // Then fetch from server and decrypt
     console.log('[DEBUG] Fetching messages from server...')
     const remote: Message[] = await authFetch(`/messages/${conversationId}`)
     console.log('[DEBUG] Fetched remote messages:', remote.length)
-    const sessionKey = peerUserId ? await keyStore.getSessionKey(conversationId, peerUserId).catch(() => null) : null
+    const sessionKey = peerUserId
+      ? await keyStore.getSessionKey(conversationId, peerUserId, peerBundle ?? undefined).catch(() => null)
+      : null
     console.log('[DEBUG] Session key for decryption:', sessionKey ? 'found' : 'not found')
 
-    const decrypted = await Promise.all(
+    const decryptedRemote = await Promise.all(
       remote.map(async (msg) => {
         // Check if we have a decrypted version locally
         const localMsg = local.find(l => l.id === msg.id)
@@ -267,10 +279,38 @@ async function loadMessages() {
       }),
     )
 
-    console.log('[DEBUG] Final decrypted messages:', decrypted.length)
-    convStore.setMessages(conversationId, decrypted.reverse())
+    // Merge remote + local by message ID, always preserving legitimate plaintext if we already have it.
+    // This prevents chat content from "disappearing" when a decrypt attempt temporarily fails.
+    const mergedById = new Map<string, Message>()
+
+    for (const localMsg of local) {
+      if (!isPlaceholderMessage(localMsg)) {
+        mergedById.set(localMsg.id, localMsg)
+      }
+    }
+
+    for (const remoteMsg of decryptedRemote) {
+      const existing = mergedById.get(remoteMsg.id)
+      if (existing && !isPlaceholderMessage(existing) && isPlaceholderMessage(remoteMsg)) {
+        // Keep known-good plaintext from local cache, but refresh server fields.
+        mergedById.set(remoteMsg.id, {
+          ...remoteMsg,
+          plaintext: existing.plaintext,
+          is_placeholder: false,
+        })
+        continue
+      }
+      mergedById.set(remoteMsg.id, remoteMsg)
+    }
+
+    const finalMessages = [...mergedById.values()].sort(
+      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
+    )
+
+    console.log('[DEBUG] Final merged messages:', finalMessages.length)
+    convStore.setMessages(conversationId, finalMessages)
     // Persist locally - only save messages with actual plaintext
-    const messagesToSave = decrypted.filter(m => {
+    const messagesToSave = finalMessages.filter(m => {
       const hasPlaintext = !!m.plaintext
       const isNotPlaceholder = !isPlaceholderMessage(m)
       const isNotWarning = !m.plaintext?.startsWith('⚠️')
@@ -420,7 +460,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   ws.leaveRoom(conversationId)
-  convStore.setActiveConversation(null)
+  // Avoid race conditions when navigating quickly between conversations:
+  // only clear active conversation if this page is still the active one.
+  if (convStore.activeConversationId === conversationId) {
+    convStore.setActiveConversation(null)
+  }
   unsubscribeWs?.()
 })
 </script>

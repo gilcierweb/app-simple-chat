@@ -144,6 +144,7 @@ import type { Conversation } from '~/types'
 const authStore = useAuthStore()
 const convStore = useConversationStore()
 const { t } = useI18n()
+const { logout } = useAuth()
 const search = ref('')
 const isCollapsed = ref(false)
 const mobileOpen = ref(false)
@@ -187,7 +188,6 @@ function convName(c: Conversation): string {
 }
 
 async function handleLogout() {
-  const { logout } = useAuth()
   await logout()
 }
 

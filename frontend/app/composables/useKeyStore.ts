@@ -248,8 +248,18 @@ export const useKeyStore = () => {
     signed_prekey: string
     one_time_prekey: string | null
   }): Promise<CryptoKey> {
-    // Use v2 cache key to force recreation with symmetric key derivation
-    const cacheKey = `session:v2:${conversationId}`
+    // v3 cache key is scoped by conversation + peer user.
+    // This prevents stale/mismatched session reuse across peers.
+    const cacheKey = `session:v3:${conversationId}:${peerUserId}`
+
+    // If a fresh peer bundle is provided, always rebuild and overwrite cache.
+    // This protects against stale sessions when peer keys were rotated.
+    if (peerBundle) {
+      const key = await establishSession(peerBundle)
+      await storeKey(cacheKey, key)
+      return key
+    }
+
     const cached = await loadKey(cacheKey)
     if (cached) return cached
 
@@ -262,9 +272,7 @@ export const useKeyStore = () => {
       throw new Error('Need peer bundle to establish new session')
     }
 
-    const key = await establishSession(peerBundle)
-    await storeKey(cacheKey, key)
-    return key
+    throw new Error('Need peer bundle to establish new session')
   }
 
   /**
@@ -298,7 +306,7 @@ export const useKeyStore = () => {
    * Creates session if not exists.
    */
   async function ensureSession(conversationId: string, peerUserId: string): Promise<void> {
-    const cacheKey = `session:v2:${conversationId}`
+    const cacheKey = `session:v3:${conversationId}:${peerUserId}`
     const cached = await loadKey(cacheKey)
     if (cached) return
 
