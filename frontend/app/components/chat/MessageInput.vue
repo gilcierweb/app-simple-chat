@@ -54,6 +54,8 @@
 
 <script setup lang="ts">
 import type { Message } from '~/types'
+import { useAuthStore } from '~/stores/auth'
+import { useConversationStore } from '~/stores/conversations'
 
 const props = defineProps<{
   conversationId: string
@@ -90,41 +92,55 @@ function onInput() {
 
 async function sendMessage() {
   const content = text.value.trim()
+  console.log('sendMessage called, content:', content)
   if (!content || props.disabled || sending.value) return
 
   sending.value = true
   const optimisticId = crypto.randomUUID()
 
   try {
-    // Encrypt message client-side
-    const sessionKey = await keyStore.getSessionKey(props.conversationId)
-    const { ciphertext, iv } = await keyStore.encrypt(sessionKey, content)
+    // Get peer user ID from conversation members
+    const convStore = useConversationStore()
+    const conversation = convStore.conversations.find(c => c.id === props.conversationId)
+    const currentUserId = useAuthStore().user?.id
+    const peerUserId = conversation?.members?.find(m => m.user_id !== currentUserId)?.user_id
 
-    // Optimistic update
-    const optimistic: Message = {
-      id: optimisticId,
-      conversation_id: props.conversationId,
-      sender_id: '', // filled after response
-      ciphertext,
-      iv,
-      message_type: 'text',
-      reply_to_id: null,
-      created_at: new Date().toISOString(),
-      deleted_at: null,
-      plaintext: content,
-      status: 'sending',
+    if (!peerUserId) {
+      console.error('Could not find peer user ID')
+      throw new Error('Cannot find peer user')
     }
-    emit('sent', optimistic)
+
+    // Encrypt message client-side
+    console.log('Getting session key for:', props.conversationId, 'peer:', peerUserId)
+    
+    // Try to get session key for sending, will fetch bundle if not exists
+    let sessionKey = await keyStore.getSessionKey(props.conversationId, peerUserId).catch(() => null)
+    
+    if (!sessionKey) {
+      console.log('No session key - creating session')
+      await keyStore.ensureSession(props.conversationId, peerUserId)
+      sessionKey = await keyStore.getSessionKey(props.conversationId, peerUserId)
+      if (!sessionKey) {
+        throw new Error('Need peer bundle to establish new session')
+      }
+    }
+    
+    console.log('Session key obtained:', sessionKey)
+    const { ciphertext, iv } = await keyStore.encrypt(sessionKey, content)
+    console.log('Encrypted message, ciphertext length:', ciphertext.length)
 
     text.value = ''
     if (textareaEl.value) textareaEl.value.style.height = 'auto'
 
-    // Send to server
+    // Send to server (no optimistic - will be added via WebSocket)
+    console.log('Sending to server...')
     const msg = await authFetch<Message>(`/messages/${props.conversationId}`, {
       method: 'POST',
-      body: JSON.stringify({ ciphertext, iv, message_type: 'text' }),
+      body: JSON.stringify({ ciphertext, iv, message_type: 1 }),
     })
-
+    console.log('Message sent:', msg)
+    
+    // Emit so the sender sees the message immediately
     emit('sent', { ...msg, plaintext: content, status: 'sent' })
   } catch (e) {
     console.error('Failed to send message', e)

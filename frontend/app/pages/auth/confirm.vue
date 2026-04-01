@@ -39,7 +39,7 @@ onMounted(async () => {
     return
   }
   try {
-    await $fetch(`${config.public.apiBaseUrl}/auth/confirm/${token}`)
+    await $fetch(`${config.public.apiBase}/auth/confirm/${token}`)
     success.value = true
   } catch (e: any) {
     error.value = e?.data?.message || 'Invalid or expired confirmation link'

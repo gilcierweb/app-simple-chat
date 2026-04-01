@@ -3,11 +3,13 @@ pub mod base_repository;
 pub mod macros;
 pub mod container;
 pub mod traits;
+pub mod impls;
 
 pub mod users_repository;
 pub mod profiles_repository;
 pub mod refresh_tokens_repository;
 pub mod audit_logs_repository;
+pub mod conversations_repository;
 
 // Re-export key types for convenient access
 pub use container::AppContainer;
@@ -15,9 +17,10 @@ pub use users_repository::IUserRepository;
 pub use profiles_repository::IProfileRepository;
 pub use refresh_tokens_repository::IRefreshTokenRepository;
 pub use audit_logs_repository::IAuditLogRepository;
+pub use conversations_repository::{IConversationRepository, IConversationMemberRepository, IMessageRepository};
 
 // ── Manual implementations for all traits ─────────
-use diesel::ExpressionMethods;
+use diesel::{ExpressionMethods, JoinOnDsl};
 use crate::repositories::base::BaseRepo;
 use crate::db::schema::{users, profiles, refresh_tokens, audit_logs};
 use crate::models::user::{User, NewUser};

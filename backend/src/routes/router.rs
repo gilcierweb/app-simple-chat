@@ -6,7 +6,8 @@ use utoipa_swagger_ui::SwaggerUi;
 pub struct WsState;
 
 pub use crate::controllers::{
-    auth_controller, health_controller, users_controller, ws_controller,
+    auth_controller, conversations_controller, health_controller, keys_controller,
+    messages_controller, profiles_controller, users_controller, ws_controller,
 };
 
 use actix_web::web;
@@ -47,9 +48,29 @@ pub fn config(cfg: &mut web::ServiceConfig, redis_pool: deadpool_redis::Pool) {
             .service(users_controller::get_me)
             .service(users_controller::update_me)
             .service(users_controller::list_sessions)
-            .service(users_controller::revoke_session)                   
+            .service(users_controller::revoke_session)
+            // User lookup
+            .service(conversations_controller::lookup_user_by_email)
+            // Profile routes
+            .service(profiles_controller::get_profile)
+            .service(profiles_controller::update_profile)
             // Health check
-            .service(health_controller::health_check)           
+            .service(health_controller::health_check)
+            // Conversations routes
+            .service(conversations_controller::list_conversations)
+            .service(conversations_controller::create_conversation)
+            .service(conversations_controller::get_conversation_messages)
+            .service(conversations_controller::send_message)
+            .service(conversations_controller::delete_message)
+            .service(conversations_controller::lookup_user_by_email)
+            // Messages routes
+            .service(messages_controller::list)
+            .service(messages_controller::send)
+            .service(messages_controller::delete)
+            .service(messages_controller::update_receipt)
+            // Keys routes
+            .service(keys_controller::upload_keys)
+            .service(keys_controller::get_prekey_bundle)
             // WebSocket token endpoint
             .service(ws_controller::get_ws_token)
             // WebSocket route (inside /api/v1 scope)

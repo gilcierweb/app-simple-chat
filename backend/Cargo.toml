@@ -20,6 +20,8 @@ codegen-units = 1
 [dependencies]
 actix-cors = "0.7.1"
 actix-web = "4.13.0"
+actix = "0.13"
+actix-web-actors = "4"
 argon2 = "0.5.3"
 chrono = { version = "0.4.44", features = ["serde"] }
 diesel = { version = "2.3.7", features = ["postgres", "r2d2", "chrono", "uuid", "ipnet-address", "numeric", "64-column-tables", "serde_json"] }

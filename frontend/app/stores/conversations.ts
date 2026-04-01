@@ -7,6 +7,7 @@ export const useConversationStore = defineStore('conversations', () => {
   const messages = ref<Record<string, Message[]>>({})
   const typingUsers = ref<Record<string, Set<string>>>({})
   const loadingMessages = ref(false)
+  const showNewChatModal = ref(false)
 
   const activeConversation = computed(() =>
     conversations.value.find(c => c.id === activeConversationId.value) ?? null,
@@ -35,13 +36,11 @@ export const useConversationStore = defineStore('conversations', () => {
   }
 
   function appendMessage(msg: Message) {
-    if (!messages.value[msg.conversation_id]) {
-      messages.value[msg.conversation_id] = []
-    }
+    // Create new array to ensure reactivity
+    const current = messages.value[msg.conversation_id] || []
     // Avoid duplicates
-    const exists = messages.value[msg.conversation_id].some(m => m.id === msg.id)
-    if (!exists) {
-      messages.value[msg.conversation_id].push(msg)
+    if (!current.some(m => m.id === msg.id)) {
+      messages.value[msg.conversation_id] = [...current, msg]
     }
 
     // Update last_message on conversation
@@ -76,11 +75,20 @@ export const useConversationStore = defineStore('conversations', () => {
     return [...(typingUsers.value[conversationId] ?? [])]
   }
 
+  function openNewChatModal() {
+    showNewChatModal.value = true
+  }
+
+  function closeNewChatModal() {
+    showNewChatModal.value = false
+  }
+
   return {
     conversations,
     activeConversationId,
     messages,
     loadingMessages,
+    showNewChatModal,
     activeConversation,
     activeMessages,
     setConversations,
@@ -91,5 +99,7 @@ export const useConversationStore = defineStore('conversations', () => {
     deleteMessage,
     setTyping,
     getTypingUsers,
+    openNewChatModal,
+    closeNewChatModal,
   }
 })

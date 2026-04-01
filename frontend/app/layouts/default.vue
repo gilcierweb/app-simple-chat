@@ -15,7 +15,7 @@
           </span>
         </div>
         <div class="flex items-center gap-1">
-          <button class="btn btn-ghost btn-sm btn-square" @click="showNewChat = true" title="New conversation">
+          <button class="btn btn-ghost btn-sm btn-square" @click="convStore.openNewChatModal()" title="New conversation">
             <span class="icon-[lucide--square-pen] size-5"></span>
           </button>
           <NuxtLink to="/settings" class="btn btn-ghost btn-sm btn-square" title="Settings">
@@ -51,15 +51,18 @@
     </main>
 
     <!-- New chat modal -->
-    <NewChatModal v-if="showNewChat" @close="showNewChat = false" />
+    <NewChatModal v-if="convStore.showNewChatModal" @close="convStore.closeNewChatModal()" />
   </div>
 </template>
 
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
+import { useConversationStore } from '~/stores/conversations'
+import ConversationList from '~/components/chat/ConversationList.vue'
+import NewChatModal from '~/components/chat/NewChatModal.vue'
 
 const authStore = useAuthStore()
-const showNewChat = ref(false)
+const convStore = useConversationStore()
 const search = ref('')
 
 const userInitial = computed(() => {
@@ -67,7 +70,6 @@ const userInitial = computed(() => {
   return name[0].toUpperCase()
 })
 
-// Connect WebSocket on mount
 const ws = useWebSocket()
 onMounted(() => ws.connect())
 onUnmounted(() => ws.disconnect())

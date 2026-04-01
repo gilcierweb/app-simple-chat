@@ -77,7 +77,7 @@
     <!-- Message input -->
     <MessageInput
       :conversation-id="conversationId"
-      :disabled="!conversation"
+      :disabled="false"
       @sent="onMessageSent"
     />
   </div>
@@ -87,6 +87,8 @@
 import type { Message } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 import { useConversationStore } from '~/stores/conversations'
+import MessageBubble from '~/components/chat/MessageBubble.vue'
+import MessageInput from '~/components/chat/MessageInput.vue'
 
 definePageMeta({ layout: 'default' })
 
@@ -94,6 +96,7 @@ const route = useRoute()
 const conversationId = route.params.id as string
 
 const authStore = useAuthStore()
+console.log('[DEBUG] authStore.user:', authStore.user, 'authStore.user?.id:', authStore.user?.id)
 const convStore = useConversationStore()
 const { authFetch } = useAuth()
 const keyStore = useKeyStore()
@@ -156,7 +159,8 @@ async function loadMessages() {
 
     // Then fetch from server and decrypt
     const remote: Message[] = await authFetch(`/messages/${conversationId}`)
-    const sessionKey = await keyStore.getSessionKey(conversationId).catch(() => null)
+    const peerUserId = conversation.value?.members?.find(m => m.user_id !== authStore.user?.id)?.user_id
+    const sessionKey = peerUserId ? await keyStore.getSessionKey(conversationId, peerUserId).catch(() => null) : null
 
     const decrypted = await Promise.all(
       remote.map(async (msg) => {
@@ -207,15 +211,39 @@ async function deleteMessage(messageId: string) {
 }
 
 // Handle incoming WS messages
+let unsubscribeWs: (() => void) | null = null
+
 onMounted(async () => {
   await loadMessages()
+  
+  // Join the conversation room for real-time updates
+  ws.joinRoom(conversationId)
 
-  ws.on(async (event) => {
+  unsubscribeWs = ws.on(async (event) => {
+    console.log('WS handler received:', event, 'type:', event?.type, 'conversationId:', conversationId)
     if (event.type === 'new_message' && event.conversation_id === conversationId) {
-      const sessionKey = await keyStore.getSessionKey(conversationId).catch(() => null)
+      console.log('Processing new_message for conversation:', conversationId, 'event.conv:', event.conversation_id, 'MATCH!')
+      // Use sender_id to get the correct session key for decryption
+      const senderId = event.sender_id
+      console.log('Sender ID for decryption:', senderId)
+      // Fetch peer bundle from sender and establish/get session key
+      let sessionKey: CryptoKey | null = null
+      try {
+        const bundle = await keyStore.fetchPeerBundle(senderId)
+        if (bundle) {
+          sessionKey = await keyStore.getSessionKey(conversationId, senderId, bundle)
+        }
+      } catch (err) {
+        console.error('Failed to get session key:', err)
+      }
+      console.log('Session key:', sessionKey)
       let plaintext = '[Unable to decrypt]'
       if (sessionKey) {
-        try { plaintext = await keyStore.decrypt(sessionKey, event.ciphertext, event.iv) } catch {}
+        try { 
+          plaintext = await keyStore.decrypt(sessionKey, event.ciphertext, event.iv) 
+        } catch (err) { 
+          console.error('Decrypt error:', err) 
+        }
       }
       const msg: Message = {
         id: event.message_id,
@@ -230,6 +258,7 @@ onMounted(async () => {
         plaintext,
         status: 'delivered',
       }
+      console.log('Adding message to store:', msg)
       convStore.appendMessage(msg)
       await messageStore.saveLocal(msg)
       scrollToBottom(true)
@@ -246,6 +275,8 @@ onMounted(async () => {
 })
 
 onUnmounted(() => {
+  ws.leaveRoom(conversationId)
   convStore.setActiveConversation(null)
+  unsubscribeWs?.()
 })
 </script>

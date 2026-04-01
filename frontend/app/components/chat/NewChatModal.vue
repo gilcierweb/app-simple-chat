@@ -1,97 +1,51 @@
 <template>
-  <div class="modal modal-open" role="dialog">
-    <div class="modal-box max-w-md bg-dark-900 border border-dark-800">
-      <!-- Header -->
+  <div class="modal-overlay" @click.self="closeModal">
+    <div class="modal-box">
       <div class="flex items-center justify-between mb-4">
-        <h3 class="font-display text-xl font-bold text-text-primary">New conversation</h3>
-        <button class="btn btn-ghost btn-sm btn-square" @click="$emit('close')">
+        <h3 class="text-xl font-bold">New conversation</h3>
+        <button class="btn btn-ghost btn-sm btn-square" @click="closeModal">
           <span class="icon-[lucide--x] size-5"></span>
         </button>
       </div>
 
-      <!-- Tabs -->
-      <div class="tabs tabs-bordered mb-4">
-        <button 
-          class="tab" 
-          :class="{ 'tab-active text-primary': mode === 'direct' }" 
-          @click="mode = 'direct'"
-        >
-          <span class="icon-[lucide--user] size-4 mr-1"></span>
-          Direct
-        </button>
-        <button 
-          class="tab" 
-          :class="{ 'tab-active text-primary': mode === 'group' }" 
-          @click="mode = 'group'"
-        >
-          <span class="icon-[lucide--users] size-4 mr-1"></span>
-          Group
-        </button>
-      </div>
-
-      <!-- Group Name -->
-      <div v-if="mode === 'group'" class="form-control mb-3">
-        <label class="label"><span class="label-text text-text-secondary">Group name</span></label>
-        <label class="input-group input-group-sm">
-          <span class="input-group-text">
-            <span class="icon-[lucide--type] size-4 text-text-muted"></span>
-          </span>
-          <input 
-            v-model="groupName" 
-            type="text" 
-            placeholder="My awesome group" 
-            class="input input-filled flex-1" 
-          />
-        </label>
-      </div>
-
-      <!-- Add Member -->
       <div class="form-control mb-4">
-        <label class="label"><span class="label-text text-text-secondary">Add by email</span></label>
+        <label class="label"><span class="label-text">Add by email</span></label>
         <label class="input-group input-group-sm">
           <span class="input-group-text">
-            <span class="icon-[lucide--mail] size-4 text-text-muted"></span>
+            <span class="icon-[lucide--mail] size-4"></span>
           </span>
           <input
             v-model="emailInput"
             type="email"
             placeholder="contact@example.com"
             class="input input-filled flex-1"
-            @keydown.enter.prevent="addEmail"
+            @keyup.enter="addEmail"
           />
-          <button class="btn btn-primary btn-sm" @click="addEmail">
-            <span class="icon-[lucide--plus] size-4"></span>
+          <button class="btn btn-primary btn-sm" @click="addEmail" :disabled="!emailInput.trim() || loading">
+            <span v-if="loading" class="loading loading-spinner loading-xs"></span>
+            <span v-else class="icon-[lucide--plus] size-4"></span>
           </button>
         </label>
       </div>
 
-      <!-- Selected Members -->
-      <div v-if="members.length > 0" class="flex flex-wrap gap-2 mb-4">
-        <div 
-          v-for="m in members" 
-          :key="m" 
-          class="badge badge-primary badge-soft gap-1 cursor-pointer hover:bg-primary/20"
-          @click="removeMember(m)"
-        >
+      <div v-if="selectedEmail" class="flex flex-wrap gap-2 mb-4">
+        <div class="badge badge-primary badge-soft gap-1">
           <span class="icon-[lucide--mail] size-3"></span>
-          {{ m }}
-          <span class="icon-[lucide--x] size-3"></span>
+          {{ selectedEmail }}
         </div>
       </div>
 
-      <!-- Error Alert -->
-      <div v-if="error" class="alert alert-soft alert-error text-sm py-2 mb-3">
+      <div v-if="errorMessage" class="alert alert-soft alert-error text-sm py-2 mb-3">
         <span class="icon-[lucide--alert-circle] size-4"></span>
-        {{ error }}
+        {{ errorMessage }}
       </div>
 
-      <!-- Actions -->
       <div class="modal-action mt-2">
-        <button class="btn btn-ghost btn-sm" @click="$emit('close')">Cancel</button>
+        <button class="btn btn-ghost btn-sm" @click="closeModal">Cancel</button>
         <button
           class="btn btn-primary btn-sm"
-          :disabled="members.length === 0 || creating"
-          @click="create"
+          :disabled="!selectedUserId || creating"
+          @click="handleStartConversation"
         >
           <span v-if="creating" class="loading loading-spinner loading-xs"></span>
           <span v-else class="flex items-center gap-1">
@@ -101,58 +55,113 @@
         </button>
       </div>
     </div>
-    <div class="modal-backdrop bg-dark-950/80" @click="$emit('close')"></div>
+    <div class="modal-backdrop" @click="closeModal"></div>
   </div>
 </template>
 
 <script setup lang="ts">
-import { useConversationStore } from '~/stores/conversations'
-
-const emit = defineEmits<{ close: [] }>()
+const emit = defineEmits(['close'])
 const { authFetch } = useAuth()
 const router = useRouter()
 const convStore = useConversationStore()
 
-const mode = ref<'direct' | 'group'>('direct')
-const groupName = ref('')
 const emailInput = ref('')
-const members = ref<string[]>([])
+const selectedEmail = ref('')
+const selectedUserId = ref('')
+const loading = ref(false)
 const creating = ref(false)
-const error = ref('')
+const errorMessage = ref('')
 
-function addEmail() {
-  const e = emailInput.value.trim()
-  if (!e || !e.includes('@')) return
-  if (!members.value.includes(e)) members.value.push(e)
-  emailInput.value = ''
-}
-
-function removeMember(email: string) {
-  members.value = members.value.filter(m => m !== email)
-}
-
-async function create() {
-  if (members.value.length === 0) return
-  creating.value = true
-  error.value = ''
+async function addEmail() {
+  const email = emailInput.value.trim()
+  if (!email || !email.includes('@')) {
+    errorMessage.value = 'Invalid email address'
+    return
+  }
+  
+  loading.value = true
+  errorMessage.value = ''
+  selectedEmail.value = ''
+  selectedUserId.value = ''
   try {
-    // In real implementation, look up user IDs by email first
-    // For now, placeholder with mock UUIDs
+    const user = await authFetch<{user_id: string, email: string, conversation_type: string}>('/users/lookup?email=' + encodeURIComponent(email))
+    if (user && user.user_id) {
+      selectedEmail.value = user.email
+      selectedUserId.value = user.user_id
+    }
+  } catch (e: any) {
+    errorMessage.value = e.data?.message || e.message || 'User not found'
+  } finally {
+    loading.value = false
+  }
+}
+
+function closeModal() {
+  emit('close')
+}
+
+async function handleStartConversation() {
+  if (!selectedUserId.value) {
+    errorMessage.value = 'Please select a user first'
+    return
+  }
+  await createConversation()
+}
+
+async function createConversation() {
+  if (!selectedUserId.value) {
+    errorMessage.value = 'No user selected'
+    return
+  }
+  
+  creating.value = true
+  errorMessage.value = ''
+  try {
     const conv = await authFetch<any>('/conversations', {
       method: 'POST',
-      body: JSON.stringify({
-        conversation_type: mode.value,
-        member_ids: [],  // TODO: resolve email → UUID
-        name: mode.value === 'group' ? groupName.value : undefined,
-      }),
+      body: {
+        participant_user_id: selectedUserId.value,
+        conversation_type: 1,
+      },
     })
-    convStore.upsertConversation(conv)
+    console.log('[DEBUG] Created conversation:', conv, 'members:', conv?.members)
+    convStore.upsertConversation(conv as any)
     emit('close')
-    router.push(`/conversations/${conv.id}`)
+    await router.push(`/conversations/${conv.id}`)
   } catch (e: any) {
-    error.value = e.message || 'Failed to create conversation'
+    errorMessage.value = e.data?.message || e.message || 'Failed to create conversation'
   } finally {
     creating.value = false
   }
 }
 </script>
+
+<style scoped>
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 9999;
+}
+
+.modal-box {
+  background: #1a1a2e;
+  border: 1px solid #333;
+  padding: 24px;
+  border-radius: 12px;
+  max-width: 450px;
+  width: 100%;
+  color: #fff;
+  position: relative;
+  z-index: 10000;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+}
+</style>

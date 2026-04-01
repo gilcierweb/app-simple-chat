@@ -14,7 +14,7 @@
         </p>
 
         <!-- Action -->
-        <button class="btn btn-primary btn-soft mt-6" @click="$emit('newChat')">
+        <button class="btn btn-primary btn-soft mt-6" @click="handleNewChat">
           <span class="icon-[lucide--plus] size-4"></span>
           Start new conversation
         </button>
@@ -30,17 +30,21 @@
 </template>
 
 <script setup lang="ts">
-// definePageMeta({ layout: 'default' })
+definePageMeta({ layout: 'default' })
 
 const authStore = useAuthStore()
 const { authFetch } = useAuth()
+const convStore = useConversationStore()
+
+function handleNewChat() {
+  convStore.openNewChatModal()
+}
 
 // Load conversations on mount
 onMounted(async () => {
   try {
     const data = await authFetch<any[]>('/conversations')
-    const store = useConversationStore()
-    store.setConversations(data)
+    convStore.setConversations(data)
   } catch {}
 })
 </script>

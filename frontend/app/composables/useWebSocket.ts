@@ -31,10 +31,38 @@ export const useWebSocket = () => {
     }
 
     socket.onmessage = (event) => {
+      console.log('WS received:', event.data)
       try {
-        const msg: WsIncomingMessage = JSON.parse(event.data)
+        const raw = JSON.parse(event.data)
+        console.log('WS raw msg_type:', raw.msg_type)
+        // Transform backend format to frontend format
+        let msg: WsIncomingMessage
+        if (raw.msg_type === 'new_message') {
+          msg = {
+            type: 'new_message',
+            conversation_id: raw.payload.conversation_id,
+            message_id: raw.payload.message_id,
+            sender_id: raw.payload.sender_id,
+            ciphertext: raw.payload.ciphertext,
+            iv: raw.payload.iv,
+            message_type: raw.payload.message_type,
+            reply_to_id: raw.payload.reply_to_id,
+            created_at: raw.payload.created_at,
+          }
+        } else if (raw.msg_type === 'typing') {
+          msg = {
+            type: 'typing',
+            conversation_id: raw.payload.room,
+            user_id: raw.payload.user_id || raw.payload.user,
+          }
+        } else {
+          msg = raw
+        }
+        console.log('WS parsed:', msg)
         handlers.forEach(h => h(msg))
-      } catch {}
+      } catch (e) {
+        console.error('WS parse error:', e)
+      }
     }
 
     socket.onclose = () => {
@@ -69,12 +97,20 @@ export const useWebSocket = () => {
   }
 
   function sendTyping(conversationId: string) {
-    send({ type: 'typing', conversation_id: conversationId })
+    send({ action: 'typing', data: { room: conversationId } })
   }
 
   function sendMarkRead(conversationId: string, messageId: string) {
-    send({ type: 'mark_read', conversation_id: conversationId, message_id: messageId })
+    send({ action: 'mark_read', data: { conversation_id: conversationId, message_id: messageId } })
   }
 
-  return { connected, connect, disconnect, send, on, sendTyping, sendMarkRead }
+  function joinRoom(conversationId: string) {
+    send({ action: 'join_room', data: { room: conversationId } })
+  }
+
+  function leaveRoom(conversationId: string) {
+    send({ action: 'leave_room', data: { room: conversationId } })
+  }
+
+  return { connected, connect, disconnect, send, on, sendTyping, sendMarkRead, joinRoom, leaveRoom }
 }

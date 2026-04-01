@@ -1,4 +1,5 @@
 import type { AuthResponse, User } from '~/types'
+import { useAuthStore } from '~/stores/auth'
 
 /**
  * Authentication composable — handles login, register, token management.
@@ -7,6 +8,7 @@ import type { AuthResponse, User } from '~/types'
 export const useAuth = () => {
   const config = useRuntimeConfig()
   const router = useRouter()
+  const authStore = useAuthStore()
 
   const user = useState<User | null>('auth:user', () => null)
   const loading = ref(false)
@@ -23,7 +25,7 @@ export const useAuth = () => {
     loading.value = true
     error.value = null
     try {
-      const res = await $fetch(`${config.public.apiBaseUrl}/auth/register`, {
+      const res = await $fetch(`${config.public.apiBase}/auth/register`, {
         method: 'POST',
         body: { email, password },
       })
@@ -40,7 +42,7 @@ export const useAuth = () => {
     loading.value = true
     error.value = null
     try {
-      const data = await $fetch<AuthResponse>(`${config.public.apiBaseUrl}/auth/login`, {
+      const data = await $fetch<AuthResponse>(`${config.public.apiBase}/auth/login`, {
         method: 'POST',
         body: { email, password, totp_code: totpCode || undefined },
       })
@@ -48,12 +50,13 @@ export const useAuth = () => {
       localStorage.setItem('access_token', data.access_token)
       localStorage.setItem('refresh_token', data.refresh_token)
       user.value = data.user
+      authStore.setUser(data.user)
 
       // Upload keys if not yet done
       const keyStore = useKeyStore()
       await keyStore.ensureKeys(data.access_token)
 
-      await router.push('/')
+      await router.push('/chat')
     } catch (e: any) {
       error.value = e?.data?.message || 'Login failed'
       throw e
@@ -66,7 +69,7 @@ export const useAuth = () => {
     const token = localStorage.getItem('access_token')
     if (token) {
       try {
-        await $fetch(`${config.public.apiBaseUrl}/auth/logout`, {
+        await $fetch(`${config.public.apiBase}/auth/logout`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
         })
@@ -75,6 +78,7 @@ export const useAuth = () => {
     localStorage.removeItem('access_token')
     localStorage.removeItem('refresh_token')
     user.value = null
+    authStore.setUser(null)
     await router.push('/auth/login')
   }
 
@@ -83,7 +87,7 @@ export const useAuth = () => {
     if (!refreshToken) return null
     try {
       const data = await $fetch<{ access_token: string; refresh_token: string }>(
-        `${config.public.apiBaseUrl}/auth/refresh`,
+        `${config.public.apiBase}/auth/refresh`,
         { method: 'POST', body: { refresh_token: refreshToken } },
       )
       localStorage.setItem('access_token', data.access_token)
@@ -100,26 +104,28 @@ export const useAuth = () => {
    */
   async function authFetch<T>(url: string, opts: RequestInit = {}): Promise<T> {
     let token = localStorage.getItem('access_token')
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-      ...(opts.headers as Record<string, string>),
-      Authorization: `Bearer ${token}`,
+    
+    const makeRequest = async (authToken: string): Promise<T> => {
+      return await $fetch<T>(`${config.public.apiBase}${url}`, {
+        ...opts,
+        headers: {
+          'Content-Type': 'application/json',
+          ...opts.headers,
+          Authorization: `Bearer ${authToken}`,
+        },
+      })
     }
 
-    let res = await fetch(`${config.public.apiBaseUrl}${url}`, { ...opts, headers })
-
-    if (res.status === 401) {
-      token = await refreshAccessToken()
-      if (!token) throw new Error('Unauthenticated')
-      headers.Authorization = `Bearer ${token}`
-      res = await fetch(`${config.public.apiBaseUrl}${url}`, { ...opts, headers })
+    try {
+      return await makeRequest(token!)
+    } catch (e: any) {
+      if (e.response?.status === 401) {
+        token = await refreshAccessToken()
+        if (!token) throw new Error('Unauthenticated')
+        return await makeRequest(token)
+      }
+      throw e
     }
-
-    if (!res.ok) {
-      const body = await res.json().catch(() => ({}))
-      throw new Error(body.message || `HTTP ${res.status}`)
-    }
-    return res.json() as T
   }
 
   return { user, loading, error, isAuthenticated, register, login, logout, authFetch }

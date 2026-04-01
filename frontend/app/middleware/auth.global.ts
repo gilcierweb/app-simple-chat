@@ -9,6 +9,6 @@ export default defineNuxtRouteMiddleware((to) => {
   }
 
   if (token && to.path.startsWith('/auth/')) {
-    return navigateTo('/')
+    return navigateTo('/chat')
   }
 })

@@ -87,6 +87,7 @@ async fn main() -> std::io::Result<()> {
     let redis_pool_for_container = redis_pool.clone();
 
     let ws_state = web::Data::new(ws::server::WsState::new());
+    let ws_state_for_container = Arc::new(ws_state.get_ref().clone());
 
     let state = web::Data::new(AppState {
         db: db_pool,
@@ -98,6 +99,7 @@ async fn main() -> std::io::Result<()> {
     let container = web::Data::new(repositories::AppContainer::new(
         db_pool_for_container,
         config.clone(),
+        ws_state_for_container,
     ));
 
     let cors_origins = std::env::var("FRONTEND_URL")

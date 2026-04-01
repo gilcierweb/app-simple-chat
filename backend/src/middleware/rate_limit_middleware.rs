@@ -26,10 +26,10 @@ impl RateLimit {
     }
 }
 
-pub const RATE_AUTH: RateLimit = RateLimit::new(100, 60, "rl:auth");
-pub const RATE_API: RateLimit = RateLimit::new(120, 60, "rl:api");
+pub const RATE_AUTH: RateLimit = RateLimit::new(1000, 60, "rl:auth");
+pub const RATE_API: RateLimit = RateLimit::new(500, 60, "rl:api");
 pub const RATE_UPLOAD: RateLimit = RateLimit::new(10, 3600, "rl:upload");
-pub const RATE_MESSAGES: RateLimit = RateLimit::new(60, 60, "rl:msg");
+pub const RATE_MESSAGES: RateLimit = RateLimit::new(200, 60, "rl:msg");
 
 pub struct RateLimiter {
     redis: deadpool_redis::Pool,

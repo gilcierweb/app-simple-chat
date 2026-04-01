@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   compatibilityDate: '2025-07-15',
   devtools: { enabled: true },
   css: ['~/assets/css/main.css'],
+  srcDir: 'app',
 
   vite: {
     plugins: [
@@ -52,6 +53,8 @@ export default defineNuxtConfig({
       public: {
         // @ts-ignore
         apiBase: process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080/api/v1',
+        // @ts-ignore
+        wsUrl: process.env.NUXT_PUBLIC_WS_URL || 'ws://localhost:8080/api/v1/ws',
         // @ts-ignore
         cdnUrl: process.env.NUXT_PUBLIC_CDN_URL || 'https://cdn.simple-chat.com',
         // @ts-ignore

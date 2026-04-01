@@ -143,76 +143,77 @@ export const useKeyStore = () => {
 
   /**
    * Ensure keys exist locally and on the server.
-   * Called after login — generates if missing, uploads public keys.
-   */
+    * Called after login — generates if missing, uploads public keys.
+    */
   async function ensureKeys(accessToken: string): Promise<void> {
+    console.log('ensureKeys called')
     const db = await getDb()
 
     let identityPair = await loadKeyPair('identity')
     let signedPreKeyPair = await loadKeyPair('spk')
-
-    const needsGeneration = !identityPair || !signedPreKeyPair
+    console.log('identityPair:', !!identityPair, 'signedPreKeyPair:', !!signedPreKeyPair)
 
     if (!identityPair) {
       identityPair = await generateKeyPair()
       await storeKeyPair('identity', identityPair)
+      console.log('Generated identity key pair')
     }
 
     if (!signedPreKeyPair) {
       signedPreKeyPair = await generateKeyPair()
       await storeKeyPair('spk', signedPreKeyPair)
+      console.log('Generated signed prekey pair')
     }
 
-    // Generate batch of one-time prekeys
-    const otpkCount = 20
-    const otpks: CryptoKeyPair[] = []
-    for (let i = 0; i < otpkCount; i++) {
-      const pair = await generateKeyPair()
-      await storeKeyPair(`otpk:${Date.now()}:${i}`, pair)
-      otpks.push(pair)
+    // Generate batch of one-time prekeys (only if none exist)
+    const existingOtpks = []
+    for (let i = 0; i < 20; i++) {
+      const pair = await loadKeyPair(`otpk:${i}`)
+      if (pair) existingOtpks.push(pair)
+    }
+    console.log('Existing OTPKs:', existingOtpks.length)
+    
+    if (existingOtpks.length < 20) {
+      for (let i = 0; i < 20; i++) {
+        const pair = await generateKeyPair()
+        await storeKeyPair(`otpk:${i}`, pair)
+      }
+      console.log('Generated 20 OTPKs')
     }
 
-    if (needsGeneration) {
-      // Upload public keys to server
-      const identityPubB64 = await exportPublicKey(identityPair.publicKey)
-      const spkPubB64 = await exportPublicKey(signedPreKeyPair.publicKey)
-      const otpkPubs = await Promise.all(otpks.map(k => exportPublicKey(k.publicKey)))
-
-      // Simple self-signature placeholder (in production use Ed25519)
-      const spkSignature = btoa('self-signed:' + spkPubB64.substring(0, 32))
-
-      await fetch(`${config.public.apiBaseUrl}/keys`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${accessToken}`,
-        },
-        body: JSON.stringify({
-          identity_key: identityPubB64,
-          signed_prekey: { public_key: spkPubB64, signature: spkSignature },
-          one_time_prekeys: otpkPubs,
-        }),
-      })
+    // Always upload keys to ensure they're on server
+    console.log('Uploading keys to server...')
+    try {
+      await uploadKeysToServer(accessToken)
+      console.log('Keys uploaded successfully')
+    } catch (e) {
+      console.error('Failed to upload keys:', e)
     }
   }
 
   /**
    * Establish a shared key with a peer given their prekey bundle.
    * Returns the derived AES-256-GCM key for message encryption.
+   * 
+   * Uses ECDH with identity keys for symmetric key derivation:
+   * - Both sides use: our identity private + peer's identity public
+   * This ensures both derive the SAME shared secret.
    */
   async function establishSession(peerBundle: {
     identity_key: string
     signed_prekey: string
     one_time_prekey: string | null
   }): Promise<CryptoKey> {
+    // Load our identity key pair
     const identityPair = await loadKeyPair('identity')
     if (!identityPair) throw new Error('No identity key found — please log in again')
 
-    // Import peer's signed prekey
-    const peerSpk = await importPublicKey(peerBundle.signed_prekey)
-
-    // X3DH simplified: derive shared secret from our identity + peer's spk
-    const sharedKey = await deriveSharedKey(identityPair.privateKey, peerSpk)
+    // Import peer's identity public key
+    const peerIdentityKey = await importPublicKey(peerBundle.identity_key)
+    
+    // Derive shared secret using our identity private + peer's identity public
+    // This is symmetric - both sides do the same and get the same result
+    const sharedKey = await deriveSharedKey(identityPair.privateKey, peerIdentityKey)
     return sharedKey
   }
 
@@ -220,19 +221,111 @@ export const useKeyStore = () => {
    * Get or establish session key for a conversation.
    * Session keys are cached in IndexedDB.
    */
-  async function getSessionKey(conversationId: string, peerBundle?: {
+  async function getSessionKey(conversationId: string, peerUserId: string, peerBundle?: {
     identity_key: string
     signed_prekey: string
     one_time_prekey: string | null
   }): Promise<CryptoKey> {
-    const cached = await loadKey(`session:${conversationId}`)
+    // Use v2 cache key to force recreation with symmetric key derivation
+    const cacheKey = `session:v2:${conversationId}`
+    const cached = await loadKey(cacheKey)
     if (cached) return cached
 
-    if (!peerBundle) throw new Error('Need peer bundle to establish new session')
+    if (!peerBundle) {
+      // Try to fetch peer bundle from server and establish session
+      const bundle = await fetchPeerBundle(peerUserId)
+      if (bundle) {
+        return await getSessionKey(conversationId, peerUserId, bundle)
+      }
+      throw new Error('Need peer bundle to establish new session')
+    }
 
     const key = await establishSession(peerBundle)
-    await storeKey(`session:${conversationId}`, key)
+    await storeKey(cacheKey, key)
     return key
+  }
+
+  /**
+   * Fetch peer's prekey bundle from server.
+   */
+  async function fetchPeerBundle(peerUserId: string): Promise<{
+    identity_key: string
+    signed_prekey: string
+    one_time_prekey: string | null
+  } | null> {
+    const token = localStorage.getItem('access_token')
+    try {
+      const response = await $fetch<{
+        identity_key: string
+        signed_prekey: string
+        one_time_prekey: string | null
+      }>(`${config.public.apiBase}/keys/${peerUserId}`, {
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+      })
+      return response
+    } catch {
+      return null
+    }
+  }
+
+  /**
+   * Ensure a session exists for a conversation.
+   * Creates session if not exists.
+   */
+  async function ensureSession(conversationId: string, peerUserId: string): Promise<void> {
+    const cacheKey = `session:v2:${conversationId}`
+    const cached = await loadKey(cacheKey)
+    if (cached) return
+
+    const bundle = await fetchPeerBundle(peerUserId)
+    if (bundle) {
+      const key = await establishSession(bundle)
+      await storeKey(cacheKey, key)
+    }
+  }
+
+  /**
+   * Upload keys to server.
+   */
+  async function uploadKeysToServer(accessToken: string): Promise<void> {
+    console.log('uploadKeysToServer called')
+    const identityPair = await loadKeyPair('identity')
+    const signedPreKeyPair = await loadKeyPair('spk')
+    if (!identityPair || !signedPreKeyPair) {
+      console.log('Missing key pairs, cannot upload')
+      return
+    }
+
+    const identityPubB64 = await exportPublicKey(identityPair.publicKey)
+    const spkPubB64 = await exportPublicKey(signedPreKeyPair.publicKey)
+
+    const otpks: string[] = []
+    for (let i = 0; i < 20; i++) {
+      const pair = await loadKeyPair(`otpk:${i}`)
+      if (pair) {
+        otpks.push(await exportPublicKey(pair.publicKey))
+      }
+    }
+    console.log('OTPKs to upload:', otpks.length)
+
+    const spkSignature = btoa('self-signed:' + spkPubB64.substring(0, 32))
+
+    const response = await $fetch(`${config.public.apiBase}/keys`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${accessToken}`,
+      },
+      body: {
+        identity_key: identityPubB64,
+        signed_prekey: { public_key: spkPubB64, signature: spkSignature },
+        one_time_prekeys: otpks,
+      },
+    })
+    console.log('Upload response:', response)
   }
 
   return {
@@ -249,5 +342,8 @@ export const useKeyStore = () => {
     ensureKeys,
     establishSession,
     getSessionKey,
+    ensureSession,
+    uploadKeysToServer,
+    fetchPeerBundle,
   }
 }

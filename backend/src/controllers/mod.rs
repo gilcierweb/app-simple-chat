@@ -1,6 +1,10 @@
 pub mod auth_controller;
+pub mod conversations_controller;
 pub mod generic_controller;
 pub mod health_controller;
+pub mod keys_controller;
+pub mod messages_controller;
+pub mod profiles_controller;
 pub mod users_controller;
 pub mod ws_controller;
 
