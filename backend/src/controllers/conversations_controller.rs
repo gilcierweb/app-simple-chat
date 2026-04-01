@@ -131,7 +131,7 @@ pub async fn lookup_user_by_email(
         .find_by_email(&email)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+        .ok_or_else(|| AppError::NotFound(t!("users.not_found").into_owned()))?;
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
         "user_id": user.id,
@@ -157,11 +157,11 @@ pub async fn create_conversation(
             .find_by_email(email)
             .await
             .map_err(AppError::Database)?
-            .ok_or_else(|| AppError::NotFound("User not found".to_string()))?;
+            .ok_or_else(|| AppError::NotFound(t!("users.not_found").into_owned()))?;
         user.id
     } else {
         return Err(AppError::BadRequest(
-            "Either participant_user_id or participant_email is required".to_string(),
+            t!("conversations.participant_required").into_owned(),
         ));
     };
 
@@ -290,7 +290,7 @@ pub async fn get_conversation_messages(
         .find(conversation_id, user_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
+        .ok_or_else(|| AppError::Forbidden(t!("conversations.not_member").into_owned()))?;
 
     let msgs = container
         .messages
@@ -319,7 +319,7 @@ pub async fn send_message(
         .find(conversation_id, sender_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
+        .ok_or_else(|| AppError::Forbidden(t!("conversations.not_member").into_owned()))?;
 
     let msg = container
         .messages
@@ -354,7 +354,7 @@ pub async fn delete_message(
         .find(conversation_id, user_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
+        .ok_or_else(|| AppError::Forbidden(t!("conversations.not_member").into_owned()))?;
 
     container
         .messages

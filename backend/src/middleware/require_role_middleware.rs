@@ -10,10 +10,9 @@ pub fn require_role(req: &HttpRequest, role: &str) -> Result<(), ApiError> {
     if claims.has_role(role) || claims.is_admin() {
         Ok(())
     } else {
-        Err(ApiError::Forbidden(format!(
-            "Role '{}' required for this action",
-            role
-        )))
+        Err(ApiError::Forbidden(
+            t!("middleware.role_required", role = role).into_owned(),
+        ))
     }
 }
 
@@ -25,12 +24,12 @@ pub fn require_owner_or_admin(
     let claims = extract_claims(req)?;
     let requester = claims
         .profile_id()
-        .ok_or(ApiError::Forbidden("Profile ID not found".to_string()))?;
+        .ok_or(ApiError::Forbidden(t!("middleware.profile_id_not_found").into_owned()))?;
     if requester == owner_profile_id || claims.is_admin() {
         Ok(())
     } else {
         Err(ApiError::Forbidden(
-            "You don't have permission to access this resource".to_string(),
+            t!("middleware.permission_denied").into_owned(),
         ))
     }
 }

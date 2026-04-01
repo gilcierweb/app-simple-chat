@@ -1,0 +1,95 @@
+_locale: en
+
+health:
+  ok: "Server is running normally"
+  status: "healthy"
+
+errors:
+  not_found: "{resource} not found"
+  bad_request: "Bad request"
+  unauthorized: "Unauthorized"
+  forbidden: "Forbidden"
+  conflict: "Conflict"
+  validation_error: "Validation error"
+  db_error: "Database error"
+  internal_error: "Internal error"
+  rate_limited: "Too many requests. Please try again later."
+  invalid_token: "Invalid token"
+  missing_auth_header: "Missing or invalid Authorization header"
+  not_authenticated: "Not authenticated"
+
+auth:
+  register:
+    success: "User registered successfully"
+    email_confirmed: "Email confirmed successfully"
+    email_exists: "Email already in use"
+  login:
+    failed: "Invalid credentials"
+    locked: "Account locked. Please try again later."
+    email_not_confirmed: "Email not confirmed. Please check your inbox."
+  logout:
+    success: "Logout successful"
+  password:
+    mismatch: "Passwords do not match"
+    invalid_current: "Current password is incorrect"
+    changed_success: "Password changed successfully"
+    too_short: "Password must be at least 8 characters"
+  refresh:
+    invalid_token: "Invalid refresh token"
+    token_expired: "Refresh token expired or revoked"
+  recover:
+    email_sent: "If the email exists, you will receive recovery instructions"
+  reset:
+    success: "Password reset successfully"
+    token_invalid: "Invalid or expired reset token"
+  2fa:
+    setup_required: "Two-factor authentication required"
+    setup_instructions: "Scan the QR code with your authenticator app"
+    setup_success: "Two-factor authentication enabled successfully"
+    setup_not_initiated: "2FA setup not initiated. Please set up first."
+    not_enabled: "2FA is not enabled"
+    disabled_success: "Two-factor authentication disabled successfully"
+    backup_codes_warning: "Save these codes in a secure place. They will not be shown again."
+    invalid_secret: "Invalid TOTP secret"
+    invalid_totp: "Invalid TOTP"
+    invalid_code: "Invalid TOTP code"
+    setup_error: "Failed to setup TOTP: {error}"
+
+validation:
+  invalid_email: "Invalid email"
+  password_too_short: "Password must be at least 8 characters"
+
+users:
+  profile_not_found: "Profile not found"
+  profile_updated: "Profile updated successfully"
+  not_found: "User not found"
+  not_authorized: "Not authorized"
+  session_not_found: "Session not found"
+  session_revoked: "Session revoked successfully"
+
+conversations:
+  not_member: "You are not a member of this conversation"
+  user_not_found: "User not found"
+  participant_required: "Either participant_user_id or participant_email is required"
+  created: "Conversation created successfully"
+
+messages:
+  not_found: "Message not found"
+  invalid_ciphertext: "Invalid base64 ciphertext"
+  delete_unauthorized: "Cannot delete another user's message"
+  deleted: "Message deleted successfully"
+
+keys:
+  not_found: "User keys not found"
+  uploaded: "Keys uploaded successfully"
+
+middleware:
+  role_required: "Role '{}' required for this action"
+  profile_id_not_found: "Profile ID not found"
+  permission_denied: "You don't have permission to access this resource"
+
+ws:
+  invalid_token: "Invalid token"
+  missing_token: "Missing token"
+  token_creation_failed: "Token creation failed: {error}"
+  error: "WebSocket error: {error}"

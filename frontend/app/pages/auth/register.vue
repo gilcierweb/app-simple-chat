@@ -1,69 +1,52 @@
 <template>
-  <div>
+  <div class="space-y-6">
     <!-- Header -->
-    <div class="text-center mb-6">
-      <h2 class="font-display text-2xl font-bold text-text-primary">{{ t('auth.register.title') }}</h2>
-      <p class="text-sm text-text-secondary mt-1">{{ t('auth.register.subtitle') }}</p>
-    </div>
-
-    <!-- Success Alert -->
-    <div v-if="success" class="alert alert-soft alert-success mb-4">
-      <span class="icon-[lucide--check-circle] size-5"></span>
-      <div>
-        <p class="font-medium text-sm">{{ t('auth.register.successTitle') }}</p>
-        <p class="text-xs opacity-80">{{ t('auth.register.successHint') }}</p>
-      </div>
-    </div>
-
-    <!-- Error Alert -->
-    <div v-if="error" class="alert alert-soft alert-error mb-4">
-      <span class="icon-[lucide--circle-x] size-5"></span>
-      <span class="text-sm">{{ error }}</span>
+    <div class="text-center">
+      <h3 class="font-display text-2xl font-bold text-text-primary mb-1">{{ t('auth.register.title') }}</h3>
+      <p class="text-sm text-text-secondary">{{ t('auth.register.subtitle') }}</p>
     </div>
 
     <!-- Register Form -->
     <form v-if="!success" @submit.prevent="submit" class="space-y-4">
       <!-- Email Input -->
       <div class="form-control">
-        <label class="label">
-          <span class="label-text text-text-secondary">{{ t('auth.common.email') }}</span>
+        <label class="label-text mb-1.5 block text-text-secondary" for="email">
+          {{ t('auth.common.email') }}
         </label>
-        <label class="input-group">
-          <span class="input-group-text">
-            <span class="icon-[lucide--mail] size-5 text-text-muted"></span>
-          </span>
+        <div class="input input-bordered border-dark-700 bg-dark-950 flex items-center gap-3 px-4 py-3">
+          <span class="icon-[lucide--mail] size-5 text-text-muted shrink-0"></span>
           <input
+            id="email"
             v-model="email"
             type="email"
             autocomplete="email"
             :placeholder="t('auth.common.emailPlaceholder')"
-            class="input input-filled flex-1"
+            class="bg-transparent border-0 outline-none w-full text-text-primary placeholder:text-text-muted"
             :disabled="loading"
             required
           />
-        </label>
+        </div>
       </div>
 
       <!-- Password Input -->
       <div class="form-control">
-        <label class="label">
-          <span class="label-text text-text-secondary">{{ t('auth.common.password') }}</span>
+        <label class="label-text mb-1.5 block text-text-secondary" for="password">
+          {{ t('auth.common.password') }}
         </label>
-        <label class="input-group">
-          <span class="input-group-text">
-            <span class="icon-[lucide--lock] size-5 text-text-muted"></span>
-          </span>
+        <div class="input input-bordered border-dark-700 bg-dark-950 flex items-center gap-3 px-4 py-3">
+          <span class="icon-[lucide--lock] size-5 text-text-muted shrink-0"></span>
           <input
+            id="password"
             v-model="password"
             type="password"
             autocomplete="new-password"
             :placeholder="t('auth.register.passwordPlaceholder')"
-            class="input input-filled flex-1"
+            class="bg-transparent border-0 outline-none w-full text-text-primary placeholder:text-text-muted"
             :disabled="loading"
             minlength="8"
             required
           />
-        </label>
+        </div>
         <!-- Strength indicator -->
         <div class="flex gap-1 mt-2">
           <div
@@ -78,24 +61,25 @@
 
       <!-- Confirm Password Input -->
       <div class="form-control">
-        <label class="label">
-          <span class="label-text text-text-secondary">{{ t('auth.register.confirmPassword') }}</span>
+        <label class="label-text mb-1.5 block text-text-secondary" for="confirmPassword">
+          {{ t('auth.register.confirmPassword') }}
         </label>
-        <label class="input-group">
-          <span class="input-group-text">
-            <span class="icon-[lucide--lock-keyhole] size-5 text-text-muted"></span>
-          </span>
+        <div
+          class="input input-bordered flex items-center gap-3 px-4 py-3"
+          :class="confirmPassword && confirmPassword !== password ? 'border-error bg-error/5' : 'border-dark-700 bg-dark-950'"
+        >
+          <span class="icon-[lucide--lock-keyhole] size-5 text-text-muted shrink-0"></span>
           <input
+            id="confirmPassword"
             v-model="confirmPassword"
             type="password"
             autocomplete="new-password"
             :placeholder="t('auth.register.confirmPasswordPlaceholder')"
-            class="input input-filled flex-1"
-            :class="{ 'input-error': confirmPassword && confirmPassword !== password }"
+            class="bg-transparent border-0 outline-none w-full text-text-primary placeholder:text-text-muted"
             :disabled="loading"
             required
           />
-        </label>
+        </div>
         <p v-if="confirmPassword && confirmPassword !== password" class="text-xs text-error mt-1 flex items-center gap-1">
           <span class="icon-[lucide--alert-circle] size-3"></span>
           {{ t('auth.register.passwordMismatch') }}
@@ -105,11 +89,11 @@
       <!-- Submit Button -->
       <button
         type="submit"
-        class="btn btn-primary w-full"
+        class="btn btn-lg btn-primary btn-gradient w-full shadow-lg shadow-primary/20"
         :disabled="loading || (!!confirmPassword && confirmPassword !== password)"
       >
         <span v-if="loading" class="loading loading-spinner loading-sm"></span>
-        <span v-else class="flex items-center gap-2">
+        <span v-else class="flex items-center justify-center gap-2">
           <span class="icon-[lucide--user-plus] size-5"></span>
           {{ t('auth.register.submit') }}
         </span>
@@ -117,7 +101,7 @@
     </form>
 
     <!-- Divider -->
-    <div class="divider text-text-muted text-sm my-6">{{ t('auth.common.or') }}</div>
+    <div class="divider text-text-muted text-sm">{{ t('auth.common.or') }}</div>
 
     <!-- Login Link -->
     <div class="text-center">
@@ -130,7 +114,7 @@
     </div>
 
     <!-- Security Badge -->
-    <div class="mt-6 flex items-center justify-center gap-2 text-xs text-text-muted">
+    <div class="flex items-center justify-center gap-2 text-xs text-text-muted pt-2">
       <span class="icon-[lucide--shield-check] size-4 text-primary"></span>
       <span>{{ t('auth.common.e2eBadge') }}</span>
     </div>
@@ -138,10 +122,13 @@
 </template>
 
 <script setup lang="ts">
+import { useApiAlert } from '~/composables/useApiAlert'
+
 definePageMeta({ layout: 'auth' })
 const { t } = useI18n()
 
-const { register, loading, error } = useAuth()
+const { register, loading } = useAuth()
+const { showError, showSuccess } = useApiAlert()
 
 const email = ref('')
 const password = ref('')
@@ -177,10 +164,16 @@ function strengthColor(n: number) {
 }
 
 async function submit() {
-  if (password.value !== confirmPassword.value) return
+  if (password.value !== confirmPassword.value) {
+    showError({ message: t('auth.register.passwordMismatch') })
+    return
+  }
   try {
     await register(email.value, password.value)
     success.value = true
-  } catch {}
+    showSuccess(`${t('auth.register.successTitle')} ${t('auth.register.successHint')}`)
+  } catch (e: any) {
+    showError(e, 'auth.register.errors.generic')
+  }
 }
 </script>

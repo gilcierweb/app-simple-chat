@@ -48,7 +48,7 @@ impl FromRequest for AuthUser {
             None => {
                 eprintln!("[AuthUser] No Bearer token found in Authorization header");
                 ready(Err(AppError::Unauthorized(
-                    "Missing or invalid Authorization header".to_string(),
+                    t!("errors.missing_auth_header").into_owned(),
                 )))
             }
             Some(t) => {
@@ -112,7 +112,7 @@ pub fn create_token(
         &claims,
         &EncodingKey::from_secret(jwt_secret.as_bytes()),
     )
-    .map_err(|e| AppError::Internal(format!("Token creation failed: {}", e)))
+    .map_err(|e| AppError::Internal(t!("ws.token_creation_failed", error = e).into_owned()))
 }
 
 /// Verify a JWT token
@@ -125,5 +125,5 @@ pub fn verify_token(token: &str, jwt_secret: &str) -> AppResult<Claims> {
         &Validation::default(),
     )
     .map(|data| data.claims)
-    .map_err(|_| AppError::Unauthorized("Invalid token".to_string()))
+    .map_err(|_| AppError::Unauthorized(t!("errors.invalid_token").into_owned()))
 }

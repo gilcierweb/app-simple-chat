@@ -469,12 +469,12 @@ pub async fn ws_handler(
                 Ok(claims) => (claims.profile_id, claims.email),
                 Err(e) => {
                     tracing::warn!("WebSocket auth failed: {:?}", e);
-                    return Err(AppError::Unauthorized("Invalid token".to_string()));
+                    return Err(AppError::Unauthorized(t!("ws.invalid_token").into_owned()));
                 }
             }
         }
         None => {
-            return Err(AppError::Unauthorized("Missing token".to_string()));
+            return Err(AppError::Unauthorized(t!("ws.missing_token").into_owned()));
         }
     };
 
@@ -497,7 +497,7 @@ pub async fn ws_handler(
     };
 
     ws::start(ws_actor, &req, stream)
-        .map_err(|e| AppError::Internal(format!("WebSocket error: {}", e)))
+        .map_err(|e| AppError::Internal(t!("ws.error", error = e).into_owned()))
 }
 
 /// Response for WebSocket token endpoint

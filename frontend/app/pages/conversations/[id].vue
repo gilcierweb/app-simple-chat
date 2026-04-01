@@ -1,42 +1,41 @@
 <template>
   <div class="flex flex-col h-full min-h-0">
     <!-- Chat header -->
-    <header class="flex items-center gap-3 px-4 py-3 border-b border-base-300 bg-base-100">
+    <header class="flex items-center gap-3 px-4 py-3 border-b border-dark-800 bg-dark-900">
       <div class="avatar">
-        <div class="w-9 rounded-full bg-secondary text-secondary-content flex items-center justify-center font-bold text-sm">
+        <div class="w-9 rounded-full bg-brand-600 text-white flex items-center justify-center font-bold text-sm">
           {{ conversationInitial }}
         </div>
       </div>
       <div class="flex-1 min-w-0">
-        <p class="font-semibold text-sm truncate">{{ conversationName }}</p>
+        <p class="font-semibold text-sm text-text-primary truncate">{{ conversationName }}</p>
         <p v-if="typingText" class="text-xs text-success">{{ typingText }}</p>
-        <p v-else class="text-xs text-base-content/50">
+        <p v-else class="text-xs text-text-muted">
           {{ conversation?.conversation_type === 'group' ? memberCount + ' members' : 'Direct message' }}
         </p>
       </div>
       <div class="flex items-center gap-1">
-        <button class="btn btn-ghost btn-sm btn-square" title="Search messages" @click="showSearch = !showSearch">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
-          </svg>
+        <button class="btn btn-ghost btn-sm btn-square text-text-muted" title="Search messages" @click="showSearch = !showSearch">
+          <span class="icon-[lucide--search] size-5"></span>
         </button>
-        <button class="btn btn-ghost btn-sm btn-square" title="Conversation info">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-          </svg>
+        <button class="btn btn-ghost btn-sm btn-square text-text-muted" title="Conversation info">
+          <span class="icon-[lucide--info] size-5"></span>
         </button>
       </div>
     </header>
 
     <!-- Search bar -->
-    <div v-if="showSearch" class="px-4 py-2 bg-base-100 border-b border-base-300">
-      <input
-        v-model="searchQuery"
-        type="text"
-        placeholder="Search in this conversation..."
-        class="input input-sm w-full"
-        @input="onSearch"
-      />
+    <div v-if="showSearch" class="px-4 py-2 bg-dark-900 border-b border-dark-800">
+      <div class="input input-bordered input-sm border-dark-700 bg-dark-950 flex items-center gap-2">
+        <span class="icon-[lucide--search] size-4 text-text-muted"></span>
+        <input
+          v-model="searchQuery"
+          type="text"
+          placeholder="Search in this conversation..."
+          class="bg-transparent border-none outline-none w-full text-text-primary placeholder:text-text-muted"
+          @input="onSearch"
+        />
+      </div>
     </div>
 
     <!-- Messages area -->
@@ -49,9 +48,9 @@
         <template v-for="(msg, idx) in displayMessages" :key="msg.id">
           <!-- Date separator -->
           <div v-if="showDateSeparator(msg, displayMessages[idx - 1])" class="flex items-center gap-3 my-4">
-            <div class="flex-1 h-px bg-base-300"></div>
-            <span class="text-xs text-base-content/40">{{ formatDate(msg.created_at) }}</span>
-            <div class="flex-1 h-px bg-base-300"></div>
+            <div class="flex-1 h-px bg-dark-700"></div>
+            <span class="text-xs text-text-muted">{{ formatDate(msg.created_at) }}</span>
+            <div class="flex-1 h-px bg-dark-700"></div>
           </div>
 
           <MessageBubble
@@ -66,8 +65,8 @@
       <!-- Typing indicator with reserved space -->
       <div class="h-10 transition-all duration-300 ease-out" :class="{ 'opacity-0': typingUserIds.length === 0, 'opacity-100': typingUserIds.length > 0 }">
         <div class="flex items-end gap-2">
-          <div class="w-8 h-8 rounded-full bg-base-300 flex-shrink-0"></div>
-          <div class="msg-in px-3 py-2 flex items-center gap-1">
+          <div class="w-8 h-8 rounded-full bg-dark-700 flex-shrink-0"></div>
+          <div class="px-3 py-2 bg-dark-800 rounded-lg flex items-center gap-1">
             <span class="typing-dot"></span>
             <span class="typing-dot"></span>
             <span class="typing-dot"></span>

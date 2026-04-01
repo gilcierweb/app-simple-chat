@@ -1,0 +1,95 @@
+_locale: pt-BR
+
+health:
+  ok: "Servidor está funcionando normalmente"
+  status: "saudável"
+
+errors:
+  not_found: "{resource} não encontrado"
+  bad_request: "Requisição inválida"
+  unauthorized: "Não autorizado"
+  forbidden: "Acesso negado"
+  conflict: "Conflito"
+  validation_error: "Erro de validação"
+  db_error: "Erro no banco de dados"
+  internal_error: "Erro interno"
+  rate_limited: "Muitas requisições. Tente novamente mais tarde."
+  invalid_token: "Token inválido"
+  missing_auth_header: "Cabeçalho de autorização ausente ou inválido"
+  not_authenticated: "Não autenticado"
+
+auth:
+  register:
+    success: "Usuário registrado com sucesso"
+    email_confirmed: "Email confirmado com sucesso"
+    email_exists: "Email já está em uso"
+  login:
+    failed: "Credenciais inválidas"
+    locked: "Conta bloqueada. Tente novamente mais tarde."
+    email_not_confirmed: "Email não confirmado. Verifique sua caixa de entrada."
+  logout:
+    success: "Logout realizado com sucesso"
+  password:
+    mismatch: "As senhas não conferem"
+    invalid_current: "Senha atual incorreta"
+    changed_success: "Senha alterada com sucesso"
+    too_short: "A senha deve ter pelo menos 8 caracteres"
+  refresh:
+    invalid_token: "Token de refresh inválido"
+    token_expired: "Token de refresh expirado ou revogado"
+  recover:
+    email_sent: "Se o email existir, você receberá instruções de recuperação"
+  reset:
+    success: "Senha redefinida com sucesso"
+    token_invalid: "Token de redefinição inválido ou expirado"
+  2fa:
+    setup_required: "Autenticação de dois fatores necessária"
+    setup_instructions: "Escaneie o QR code com seu aplicativo autenticador"
+    setup_success: "Autenticação de dois fatores ativada com sucesso"
+    setup_not_initiated: "Configuração 2FA não iniciada. Configure primeiro."
+    not_enabled: "2FA não está ativado"
+    disabled_success: "Autenticação de dois fatores desativada com sucesso"
+    backup_codes_warning: "Guarde esses códigos em um local seguro. Eles não serão mostrados novamente."
+    invalid_secret: "Segredo TOTP inválido"
+    invalid_totp: "TOTP inválido"
+    invalid_code: "Código TOTP inválido"
+    setup_error: "Erro ao configurar TOTP: {error}"
+
+validation:
+  invalid_email: "Email inválido"
+  password_too_short: "A senha deve ter pelo menos 8 caracteres"
+
+users:
+  profile_not_found: "Perfil não encontrado"
+  profile_updated: "Perfil atualizado com sucesso"
+  not_found: "Usuário não encontrado"
+  not_authorized: "Não autorizado"
+  session_not_found: "Sessão não encontrada"
+  session_revoked: "Sessão revogada com sucesso"
+
+conversations:
+  not_member: "Você não é membro desta conversa"
+  user_not_found: "Usuário não encontrado"
+  participant_required: "É necessário informar participant_user_id ou participant_email"
+  created: "Conversa criada com sucesso"
+
+messages:
+  not_found: "Mensagem não encontrada"
+  invalid_ciphertext: "Ciphertext em base64 inválido"
+  delete_unauthorized: "Não é possível excluir mensagem de outro usuário"
+  deleted: "Mensagem excluída com sucesso"
+
+keys:
+  not_found: "Chaves do usuário não encontradas"
+  uploaded: "Chaves carregadas com sucesso"
+
+middleware:
+  role_required: "Permissão '{}' necessária para esta ação"
+  profile_id_not_found: "ID do perfil não encontrado"
+  permission_denied: "Você não tem permissão para acessar este recurso"
+
+ws:
+  invalid_token: "Token inválido"
+  missing_token: "Token ausente"
+  token_creation_failed: "Falha ao criar token: {error}"
+  error: "Erro WebSocket: {error}"

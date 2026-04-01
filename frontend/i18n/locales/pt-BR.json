@@ -2,8 +2,20 @@
   "toast": {
     "close": "Fechar notificação"
   },
+  "common": {
+    "errors": {
+      "generic": "Ocorreu um erro inesperado"
+    },
+    "email": "E-mail",
+    "emailPlaceholder": "voce{'@'}exemplo.com",
+    "password": "Senha",
+    "passwordPlaceholder": "••••••••",
+    "or": "ou",
+    "e2eBadge": "Criptografia ponta a ponta"
+  },
   "layout": {
     "auth": {
+      "secureConnection": "Conexão segura",
       "footer": "Mensageria com criptografia ponta a ponta"
     },
     "default": {
@@ -19,7 +31,7 @@
       "email": "E-mail",
       "emailPlaceholder": "voce{'@'}exemplo.com",
       "password": "Senha",
-      "passwordPlaceholder": "••••••••",
+      "passwordPlaceholder": "•••••••",
       "or": "ou",
       "e2eBadge": "Criptografia ponta a ponta"
     },
@@ -34,9 +46,14 @@
       "forgotPassword": "Esqueceu a senha?",
       "authCode": "Código de autenticação",
       "authCodePlaceholder": "000000",
+      "totpRequired": "Autenticação de dois fatores necessária. Digite o código do seu app autenticador.",
+      "rememberMe": "Lembrar de mim",
       "submit": "Entrar",
       "noAccount": "Não tem uma conta?",
-      "createOne": "Crie uma"
+      "createOne": "Crie uma",
+      "errors": {
+        "invalidCredentials": "E-mail ou senha inválidos"
+      }
     },
     "register": {
       "title": "Criar conta",
@@ -57,6 +74,14 @@
         "good": "Boa",
         "strong": "Forte"
       }
+    },
+    "forgotPassword": {
+      "title": "Recuperar senha",
+      "subtitle": "Enviaremos instruções para seu e-mail",
+      "submit": "Enviar instruções",
+      "backToLogin": "Voltar ao login",
+      "successTitle": "E-mail enviado!",
+      "successHint": "Verifique sua caixa de entrada para instruções de recuperação."
     },
     "confirm": {
       "loading": "Confirmando seu e-mail...",

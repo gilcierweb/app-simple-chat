@@ -36,7 +36,7 @@ pub async fn get_profile(
         .find_by_user_id(&user_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::NotFound("Profile not found".to_string()))?;
+        .ok_or_else(|| AppError::NotFound(t!("users.profile_not_found").into_owned()))?;
 
     Ok(HttpResponse::Ok().json(ProfileResponse {
         id: profile.id,
@@ -77,5 +77,5 @@ pub async fn update_profile(
         .await
         .map_err(AppError::Database)?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({"message": "Profile updated"})))
+    Ok(HttpResponse::Ok().json(serde_json::json!({"message": t!("users.profile_updated")})))
 }

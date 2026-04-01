@@ -1,18 +1,18 @@
 <template>
-  <div class="border-t border-base-300 bg-base-100 px-4 py-3 shrink-0">
+  <div class="border-t border-dark-800 bg-dark-900 px-4 py-3 shrink-0">
     <form @submit.prevent="sendMessage" class="flex items-end gap-2 max-h-[120px]">
       <!-- Attachment button -->
-      <button type="button" class="btn btn-ghost btn-sm btn-square text-base-content/50 flex-shrink-0 mb-1" :title="t('chat.input.attachFile')">
-        <span class="icon-[tabler--paperclip] size-5"></span>
+      <button type="button" class="btn btn-ghost btn-sm btn-square text-text-muted flex-shrink-0 mb-1" :title="t('chat.input.attachFile')">
+        <span class="icon-[lucide--paperclip] size-5"></span>
       </button>
 
       <!-- Text area with FlyonUI input style -->
-      <div class="flex-1 relative input input-bordered p-0 h-auto min-h-[48px] max-h-[96px] overflow-hidden">
+      <div class="flex-1 relative input input-bordered border-dark-700 bg-dark-950 p-0 h-auto min-h-[48px] max-h-[96px] overflow-hidden">
         <textarea
           ref="textareaEl"
           v-model="text"
           :placeholder="t('chat.input.placeholder')"
-          class="grow bg-transparent border-none focus:ring-0 resize-none text-sm leading-relaxed min-h-[42px] max-h-[96px] px-3 py-2.5 w-full"
+          class="grow bg-transparent border-none focus:ring-0 resize-none text-sm leading-relaxed min-h-[42px] max-h-[96px] px-4 py-3 w-full text-text-primary placeholder:text-text-muted"
           rows="1"
           :disabled="disabled"
           @keydown.enter.exact.prevent="sendMessage"
@@ -20,8 +20,8 @@
           @input="onInput"
         ></textarea>
         <!-- Emoji button -->
-        <button type="button" class="absolute right-2 bottom-2 text-base-content/40 hover:text-base-content/70" :title="t('chat.input.emoji')">
-          <span class="icon-[tabler--mood-smile] size-5"></span>
+        <button type="button" class="absolute right-3 bottom-3 text-text-muted hover:text-text-secondary transition-colors" :title="t('chat.input.emoji')">
+          <span class="icon-[lucide--smile] size-5"></span>
         </button>
       </div>
 
@@ -32,13 +32,13 @@
         :disabled="!text.trim() || disabled || sending"
       >
         <span v-if="sending" class="loading loading-spinner loading-xs"></span>
-        <span v-else class="icon-[tabler--send] size-4"></span>
+        <span v-else class="icon-[lucide--send] size-4"></span>
       </button>
     </form>
 
     <!-- Encryption notice -->
-    <p class="text-center text-xs text-base-content/40 mt-2 flex items-center justify-center gap-1">
-      <span class="icon-[tabler--lock] size-3"></span>
+    <p class="text-center text-xs text-text-muted mt-2 flex items-center justify-center gap-1">
+      <span class="icon-[lucide--lock] size-3"></span>
       {{ t('chat.input.e2eNotice') }}
     </p>
   </div>

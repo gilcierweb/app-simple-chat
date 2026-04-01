@@ -119,14 +119,14 @@ where
 
             match token {
                 None => Err(actix_web::error::ErrorUnauthorized(
-                    "Missing Authorization header",
+                    t!("errors.missing_auth_header"),
                 )),
                 Some(t) => match verify_access_token(&t, &config) {
                     Ok(claims) => {
                         req.extensions_mut().insert(claims);
                         svc.call(req).await
                     }
-                    Err(_) => Err(actix_web::error::ErrorUnauthorized("Invalid token")),
+                    Err(_) => Err(actix_web::error::ErrorUnauthorized(t!("errors.invalid_token"))),
                 },
             }
         })
@@ -138,5 +138,5 @@ pub fn extract_claims(req: &actix_web::HttpRequest) -> Result<Claims, ApiError> 
     req.extensions()
         .get::<Claims>()
         .cloned()
-        .ok_or_else(|| ApiError::Unauthorized("Not authenticated".to_string()))
+        .ok_or_else(|| ApiError::Unauthorized(t!("errors.not_authenticated").into_owned()))
 }

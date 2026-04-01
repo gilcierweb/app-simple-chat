@@ -9,7 +9,7 @@
       aria-controls="collapsible-mini-sidebar"
       @click="toggleMobileSidebar"
     >
-      <span class="icon-[tabler--menu-2] size-5"></span>
+      <span class="icon-[lucide--menu] size-5"></span>
     </button>
 
     <!-- Sidebar -->
@@ -41,7 +41,7 @@
           :aria-label="t('layout.default.toggleNavigation')"
           @click="toggleSidebar"
         >
-          <span class="icon-[tabler--menu-2] size-5"></span>
+          <span class="icon-[lucide--menu] size-5"></span>
         </button>
       </div>
 
@@ -49,7 +49,7 @@
       <div v-if="!isCollapsed" class="px-3 py-2">
         <label class="input-group input-group-sm">
           <span class="input-group-text">
-            <span class="icon-[tabler--search] size-4 text-base-content/50"></span>
+            <span class="icon-[lucide--search] size-4 text-text-muted"></span>
           </span>
           <input
             v-model="search"
@@ -67,7 +67,7 @@
           :class="{ 'btn-square': isCollapsed }"
           @click="convStore.openNewChatModal()"
         >
-          <span class="icon-[tabler--message-circle-plus] size-4"></span>
+          <span class="icon-[lucide--message-circle-plus] size-4"></span>
           <span :class="{ 'hidden': isCollapsed }">{{ t('layout.default.newChat') }}</span>
         </button>
       </div>
@@ -100,7 +100,7 @@
         <ul class="menu p-0 gap-1">
           <li>
             <NuxtLink to="/settings" class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-dark-800">
-              <span class="icon-[tabler--settings] size-5"></span>
+              <span class="icon-[lucide--settings] size-5"></span>
               <span :class="{ 'hidden': isCollapsed }">{{ t('layout.default.settings') }}</span>
             </NuxtLink>
           </li>
@@ -109,7 +109,7 @@
               class="flex items-center gap-2 px-3 py-2 rounded-lg hover:bg-dark-800 w-full text-left text-error"
               @click="handleLogout"
             >
-              <span class="icon-[tabler--logout-2] size-5"></span>
+              <span class="icon-[lucide--log-out] size-5"></span>
               <span :class="{ 'hidden': isCollapsed }">{{ t('layout.default.logout') }}</span>
             </button>
           </li>
@@ -129,8 +129,11 @@
       <slot />
     </main>
 
+    <!-- Global Alert Container -->
+    <AlertContainer />
+
     <!-- New chat modal -->
-    <NewChatModal v-if="convStore.showNewChatModal" @close="convStore.closeNewChatModal()" />
+    <NewChatModal v-model="convStore.showNewChatModal" />
   </div>
 </template>
 

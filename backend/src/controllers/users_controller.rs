@@ -41,14 +41,14 @@ pub async fn get_me(user: AuthUser, container: web::Data<AppContainer>) -> AppRe
         .users
         .find(&user_id)
         .await
-        .map_err(|_| AppError::NotFound("User".to_string()))?;
+        .map_err(|_| AppError::NotFound(t!("users.not_found").into_owned()))?;
 
     let profile = container
         .profiles
         .find_by_user_id(&user_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::NotFound("Profile".to_string()))?;
+        .ok_or_else(|| AppError::NotFound(t!("users.profile_not_found").into_owned()))?;
 
     let roles = container
         .users
@@ -79,7 +79,7 @@ pub async fn update_me(
         .profiles
         .find(&profile_id)
         .await
-        .map_err(|_| AppError::NotFound("Profile".to_string()))?;
+        .map_err(|_| AppError::NotFound(t!("users.profile_not_found").into_owned()))?;
 
     // Simplified profile update using only fields available in the current Profile model
     let updated_profile = NewProfile {
@@ -146,10 +146,10 @@ pub async fn revoke_session(
         .refresh_tokens
         .find(&session_id)
         .await
-        .map_err(|_| AppError::NotFound("Session".to_string()))?;
+        .map_err(|_| AppError::NotFound(t!("users.session_not_found").into_owned()))?;
 
     if token.user_id != user_id {
-        return Err(AppError::Forbidden("Not authorized".to_string()));
+        return Err(AppError::Forbidden(t!("users.not_authorized").into_owned()));
     }
 
     container

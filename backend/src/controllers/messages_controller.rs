@@ -72,7 +72,7 @@ pub async fn list(
         .find(conv_id, user_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
+        .ok_or_else(|| AppError::Forbidden(t!("conversations.not_member").into_owned()))?;
 
     let msgs = container
         .messages
@@ -101,11 +101,11 @@ pub async fn send(
         .find(conv_id, user_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::Forbidden("Not a member of this conversation".to_string()))?;
+        .ok_or_else(|| AppError::Forbidden(t!("conversations.not_member").into_owned()))?;
 
     let ct_bytes = B64
         .decode(&body.ciphertext)
-        .map_err(|_| AppError::BadRequest("Invalid base64 ciphertext".into()))?;
+        .map_err(|_| AppError::BadRequest(t!("messages.invalid_ciphertext").into_owned()))?;
 
     let msg = container
         .messages
@@ -159,11 +159,11 @@ pub async fn delete(
         .find_by_id(msg_id)
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::NotFound("Message not found".to_string()))?;
+        .ok_or_else(|| AppError::NotFound(t!("messages.not_found").into_owned()))?;
 
     if msg.sender_id != user_id {
         return Err(AppError::Forbidden(
-            "Cannot delete another user's message".to_string(),
+            t!("messages.delete_unauthorized").into_owned(),
         ));
     }
 
@@ -173,7 +173,7 @@ pub async fn delete(
         .await
         .map_err(AppError::Database)?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({"message": "Message deleted"})))
+    Ok(HttpResponse::Ok().json(serde_json::json!({"message": t!("messages.deleted")})))
 }
 
 /// POST /messages/:conversation_id/:id/receipts

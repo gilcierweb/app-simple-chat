@@ -1,0 +1,95 @@
+_locale: es
+
+health:
+  ok: "El servidor está funcionando normalmente"
+  status: "saludable"
+
+errors:
+  not_found: "{resource} no encontrado"
+  bad_request: "Solicitud inválida"
+  unauthorized: "No autorizado"
+  forbidden: "Acceso denegado"
+  conflict: "Conflicto"
+  validation_error: "Error de validación"
+  db_error: "Error en la base de datos"
+  internal_error: "Error interno"
+  rate_limited: "Demasiadas solicitudes. Por favor, inténtelo de nuevo más tarde."
+  invalid_token: "Token inválido"
+  missing_auth_header: "Encabezado de autorización ausente o inválido"
+  not_authenticated: "No autenticado"
+
+auth:
+  register:
+    success: "Usuario registrado exitosamente"
+    email_confirmed: "Email confirmado exitosamente"
+    email_exists: "El email ya está en uso"
+  login:
+    failed: "Credenciales inválidas"
+    locked: "Cuenta bloqueada. Por favor, inténtelo de nuevo más tarde."
+    email_not_confirmed: "Email no confirmado. Por favor revise su bandeja de entrada."
+  logout:
+    success: "Sesión cerrada exitosamente"
+  password:
+    mismatch: "Las contraseñas no coinciden"
+    invalid_current: "Contraseña actual incorrecta"
+    changed_success: "Contraseña cambiada exitosamente"
+    too_short: "La contraseña debe tener al menos 8 caracteres"
+  refresh:
+    invalid_token: "Token de refresh inválido"
+    token_expired: "Token de refresh expirado o revocado"
+  recover:
+    email_sent: "Si el email existe, recibirá instrucciones de recuperación"
+  reset:
+    success: "Contraseña restablecida exitosamente"
+    token_invalid: "Token de restablecimiento inválido o expirado"
+  2fa:
+    setup_required: "Se requiere autenticación de dos factores"
+    setup_instructions: "Escanee el código QR con su aplicación autenticadora"
+    setup_success: "Autenticación de dos factores activada exitosamente"
+    setup_not_initiated: "Configuración 2FA no iniciada. Por favor configúrela primero."
+    not_enabled: "2FA no está activado"
+    disabled_success: "Autenticación de dos factores desactivada exitosamente"
+    backup_codes_warning: "Guarde estos códigos en un lugar seguro. No se mostrarán de nuevo."
+    invalid_secret: "Secreto TOTP inválido"
+    invalid_totp: "TOTP inválido"
+    invalid_code: "Código TOTP inválido"
+    setup_error: "Error al configurar TOTP: {error}"
+
+validation:
+  invalid_email: "Email inválido"
+  password_too_short: "La contraseña debe tener al menos 8 caracteres"
+
+users:
+  profile_not_found: "Perfil no encontrado"
+  profile_updated: "Perfil actualizado exitosamente"
+  not_found: "Usuario no encontrado"
+  not_authorized: "No autorizado"
+  session_not_found: "Sesión no encontrada"
+  session_revoked: "Sesión revocada exitosamente"
+
+conversations:
+  not_member: "No eres miembro de esta conversación"
+  user_not_found: "Usuario no encontrado"
+  participant_required: "Se requiere participant_user_id o participant_email"
+  created: "Conversación creada exitosamente"
+
+messages:
+  not_found: "Mensaje no encontrado"
+  invalid_ciphertext: "Ciphertext en base64 inválido"
+  delete_unauthorized: "No se puede eliminar el mensaje de otro usuario"
+  deleted: "Mensaje eliminado exitosamente"
+
+keys:
+  not_found: "Claves de usuario no encontradas"
+  uploaded: "Claves cargadas exitosamente"
+
+middleware:
+  role_required: "Permiso '{}' requerido para esta acción"
+  profile_id_not_found: "ID de perfil no encontrado"
+  permission_denied: "No tiene permiso para acceder a este recurso"
+
+ws:
+  invalid_token: "Token inválido"
+  missing_token: "Token ausente"
+  token_creation_failed: "Error al crear token: {error}"
+  error: "Error WebSocket: {error}"

@@ -27,6 +27,10 @@ use db::database::{DBPool, Database};
 
 i18n!("locales");
 
+fn set_default_locale() {
+    rust_i18n::set_locale("pt-BR");
+}
+
 #[derive(Clone)]
 pub struct AppState {
     pub db: DBPool,
@@ -57,6 +61,9 @@ async fn not_found() -> Result<HttpResponse, actix_web::Error> {
 
 #[actix_web::main]
 async fn main() -> std::io::Result<()> {
+    // Set default locale to pt-BR
+    set_default_locale();
+
     tracing_subscriber::registry()
         .with(
             tracing_subscriber::EnvFilter::try_from_default_env()

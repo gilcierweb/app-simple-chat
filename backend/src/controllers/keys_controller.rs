@@ -121,7 +121,7 @@ pub async fn upload_keys(
     tracing::info!("Keys uploaded for user");
 
     Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": "Keys uploaded successfully"
+        "message": t!("keys.uploaded")
     })))
 }
 
@@ -144,7 +144,7 @@ pub async fn get_prekey_bundle(
         })
         .await
         .map_err(AppError::Database)?
-        .ok_or_else(|| AppError::NotFound("User keys not found".to_string()))?;
+        .ok_or_else(|| AppError::NotFound(t!("keys.not_found").into_owned()))?;
 
     let signed_prekey: UserKey = container
         .run(move |conn| {

@@ -6,7 +6,7 @@ authors = ["GilcierWeb", "GilcierWeb <gilcierweb@gmail.com>"]
 default-run = "backend"
 
 [package.metadata.i18n]
-available-locales = ["en", "pt-BR"]
+available-locales = [ "pt-BR", "en", "es"]
 default-locale = "pt-BR"
 load-path = "locales"
 

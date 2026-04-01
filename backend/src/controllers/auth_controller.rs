@@ -342,13 +342,13 @@ pub async fn refresh(
         .await
     {
         Ok(Some(t)) => t,
-        Ok(None) => return Err(AppError::Unauthorized("Invalid refresh token".to_string())),
+        Ok(None) => return Err(AppError::Unauthorized(t!("auth.refresh.invalid_token").into_owned())),
         Err(e) => return Err(AppError::Database(e)),
     };
 
     if !stored.is_valid() {
         return Err(AppError::Unauthorized(
-            "Refresh token expired or revoked".to_string(),
+            t!("auth.refresh.token_expired").into_owned(),
         ));
     }
 
@@ -476,7 +476,7 @@ pub async fn reset_password(
         .map_err(|e| AppError::Validation(e.to_string()))?;
 
     if body.password != body.password_confirmation {
-        return Err(AppError::Validation("Passwords do not match".to_string()));
+        return Err(AppError::Validation(t!("auth.password.mismatch").into_owned()));
     }
 
     container
@@ -510,7 +510,7 @@ pub async fn setup_2fa(
         Some(container.config.totp_issuer.clone()),
         user.claims().email.clone(),
     )
-    .map_err(|e| AppError::Internal(format!("TOTP error: {}", e)))?;
+    .map_err(|e| AppError::Internal(t!("auth.2fa.setup_error", error = e).into_owned()))?;
 
     let qr_code_url = totp.get_url();
 
@@ -612,7 +612,7 @@ pub async fn change_password(
         .map_err(|e| AppError::Validation(e.to_string()))?;
 
     if body.new_password != body.password_confirmation {
-        return Err(AppError::Validation("Passwords do not match".into()));
+        return Err(AppError::Validation(t!("auth.password.mismatch").into_owned()));
     }
 
     let user_id = user.claims().sub;
@@ -668,19 +668,19 @@ fn verify_totp(secret_base32: &str, code: &str) -> AppResult<()> {
         30,
         secret
             .to_bytes()
-            .map_err(|_| AppError::Unauthorized("Invalid TOTP secret".to_string()))?,
+            .map_err(|_| AppError::Unauthorized(t!("auth.2fa.invalid_secret").into_owned()))?,
         None,
         "".to_string(),
     )
-    .map_err(|_| AppError::Unauthorized("Invalid TOTP".to_string()))?;
+    .map_err(|_| AppError::Unauthorized(t!("auth.2fa.invalid_totp").into_owned()))?;
 
     if totp
         .check_current(code)
-        .map_err(|_| AppError::Unauthorized("Invalid TOTP code".to_string()))?
+        .map_err(|_| AppError::Unauthorized(t!("auth.2fa.invalid_code").into_owned()))?
     {
         Ok(())
     } else {
-        Err(AppError::Unauthorized("Invalid TOTP code".to_string()))
+        Err(AppError::Unauthorized(t!("auth.2fa.invalid_code").into_owned()))
     }
 }
 
@@ -706,7 +706,7 @@ fn hash_token(token: &str) -> String {
 fn validate_password_strength(password: &str) -> AppResult<()> {
     if password.len() < 8 {
         return Err(AppError::Validation(
-            "Password must be at least 8 characters".to_string(),
+            t!("auth.password.too_short").into_owned(),
         ));
     }
     Ok(())
