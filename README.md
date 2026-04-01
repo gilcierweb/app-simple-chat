@@ -473,3 +473,5 @@ Nuxt i18n strategy:
 - Restrict allowed origins in `FRONTEND_URL`.
 - Never store plaintext message content server-side.
 - Rotate secrets regularly and avoid committing `.env` files.
+
+https://gilcierweb.com.br
