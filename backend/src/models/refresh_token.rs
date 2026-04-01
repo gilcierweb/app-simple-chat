@@ -20,7 +20,7 @@ pub struct RefreshToken {
     pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Insertable)]
+#[derive(Serialize, Deserialize, Debug, Clone, Insertable, AsChangeset)]
 #[diesel(table_name = refresh_tokens)]
 pub struct NewRefreshToken {
     pub id: Uuid,

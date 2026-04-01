@@ -84,7 +84,7 @@ where
 
     fn call(&self, req: ServiceRequest) -> Self::Future {
         let svc = self.service.clone();
-        let secret = self.config.jwt_secret.clone();
+        let config = self.config.clone();
         let public_paths = self.public_paths.clone();
 
         Box::pin(async move {
@@ -121,7 +121,7 @@ where
                 None => Err(actix_web::error::ErrorUnauthorized(
                     "Missing Authorization header",
                 )),
-                Some(t) => match verify_access_token(&t, &secret) {
+                Some(t) => match verify_access_token(&t, &config) {
                     Ok(claims) => {
                         req.extensions_mut().insert(claims);
                         svc.call(req).await

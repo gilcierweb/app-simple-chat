@@ -1,6 +1,6 @@
 use chrono::{DateTime, Utc};
 use diesel::pg::Pg;
-use diesel::{Insertable, Queryable, Selectable};
+use diesel::{AsChangeset, Insertable, Queryable, Selectable};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use uuid::Uuid;
@@ -21,9 +21,10 @@ pub struct AuditLog {
     pub user_agent: Option<String>,
     pub metadata: Option<Value>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }
 
-#[derive(Serialize, Deserialize, Debug, Clone, Insertable)]
+#[derive(Serialize, Deserialize, Debug, Clone, Insertable, AsChangeset)]
 #[diesel(table_name = audit_logs)]
 pub struct NewAuditLog {
     pub id: Uuid,
@@ -35,4 +36,5 @@ pub struct NewAuditLog {
     pub user_agent: Option<String>,
     pub metadata: Option<Value>,
     pub created_at: DateTime<Utc>,
+    pub updated_at: DateTime<Utc>,
 }

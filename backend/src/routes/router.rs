@@ -2,8 +2,11 @@ use crate::api_docs::ApiDoc;
 use utoipa::OpenApi;
 use utoipa_swagger_ui::SwaggerUi;
 
+#[derive(Clone)]
+pub struct WsState;
+
 pub use crate::controllers::{
-    auth_controller,   health_controller, messages_controller,    users_controller,     ws_controller,
+    auth_controller, health_controller, users_controller, ws_controller,
 };
 
 use actix_web::web;

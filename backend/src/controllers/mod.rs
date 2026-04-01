@@ -1,19 +1,7 @@
 pub mod auth_controller;
-pub mod creator_settings_controller;
-pub mod creator_stats_controller;
-pub mod creators_controller;
+pub mod generic_controller;
 pub mod health_controller;
-pub mod kyc_controller;
-pub mod live_controller;
-pub mod media_controller;
-pub mod messages_controller;
-pub mod notification_preferences_controller;
-pub mod notifications_controller;
-pub mod posts_controller;
-pub mod subscriptions_controller;
 pub mod users_controller;
-pub mod webhooks_controller;
-pub mod withdrawals_controller;
 pub mod ws_controller;
 
 use actix_web::{HttpResponse, Responder};

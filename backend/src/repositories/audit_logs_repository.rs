@@ -12,6 +12,7 @@ use crate::models::audit_log::{AuditLog, NewAuditLog};
 pub trait IAuditLogRepository: Send + Sync {
     async fn all(&self) -> QueryResult<Vec<AuditLog>>;
     async fn find(&self, id: &Uuid) -> QueryResult<AuditLog>;
+    async fn update(&self, id: &Uuid, item: &NewAuditLog) -> QueryResult<AuditLog>;
     async fn find_by_user(&self, user_id: &Uuid) -> QueryResult<Vec<AuditLog>>;
     async fn find_by_action(&self, action: &str) -> QueryResult<Vec<AuditLog>>;
     async fn create(&self, item: &NewAuditLog) -> QueryResult<AuditLog>;

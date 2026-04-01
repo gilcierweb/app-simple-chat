@@ -13,6 +13,7 @@ pub trait IRefreshTokenRepository: Send + Sync {
     async fn all(&self) -> QueryResult<Vec<RefreshToken>>;
     async fn find(&self, id: &Uuid) -> QueryResult<RefreshToken>;
     async fn create(&self, item: &NewRefreshToken) -> QueryResult<RefreshToken>;
+    async fn update(&self, id: &Uuid, item: &NewRefreshToken) -> QueryResult<RefreshToken>;
     async fn destroy(&self, id: &Uuid) -> QueryResult<usize>;
 
     /// Find refresh token by its hash

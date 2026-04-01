@@ -97,8 +97,7 @@ async fn main() -> std::io::Result<()> {
 
     let container = web::Data::new(repositories::AppContainer::new(
         db_pool_for_container,
-        redis_pool_for_container,
-        (*config).clone(),
+        config.clone(),
     ));
 
     let cors_origins = std::env::var("FRONTEND_URL")

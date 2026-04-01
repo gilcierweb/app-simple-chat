@@ -23,7 +23,8 @@ pub fn require_owner_or_admin(
     owner_profile_id: uuid::Uuid,
 ) -> Result<(), ApiError> {
     let claims = extract_claims(req)?;
-    let requester = claims.profile_id()?;
+    let requester = claims.profile_id()
+        .ok_or(ApiError::Forbidden("Profile ID not found".to_string()))?;
     if requester == owner_profile_id || claims.is_admin() {
         Ok(())
     } else {

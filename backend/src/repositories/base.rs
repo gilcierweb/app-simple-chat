@@ -1,6 +1,7 @@
 use crate::db::database::DBPool;
 use diesel::prelude::*;
 
+#[derive(Clone)]
 pub struct BaseRepo {
     pub pool: DBPool,
 }
@@ -23,11 +24,9 @@ impl BaseRepo {
             f(&mut conn)
         })
         .await
-        .unwrap_or_else(|e| {
-            Err(diesel::result::Error::DatabaseError(
-                diesel::result::DatabaseErrorKind::Unknown,
-                Box::new(e.to_string()),
-            ))
-        })
+        .unwrap_or_else(|e| Err(diesel::result::Error::DatabaseError(
+            diesel::result::DatabaseErrorKind::Unknown,
+            Box::new(e.to_string()),
+        )))
     }
 }

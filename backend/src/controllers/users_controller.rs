@@ -81,32 +81,18 @@ pub async fn update_me(
         .await
         .map_err(|_| AppError::NotFound("Profile".to_string()))?;
 
-    // Validate slug uniqueness if changed
-    if let Some(ref slug) = body.slug {
-        let all_profiles = container.profiles.all().await.map_err(AppError::Database)?;
-
-        let taken = all_profiles
-            .iter()
-            .any(|p| p.slug.as_ref() == Some(slug) && p.id != profile_id);
-        if taken {
-            return Err(AppError::Conflict("This slug is already taken".to_string()));
-        }
-    }
-
+    // Simplified profile update using only fields available in the current Profile model
     let updated_profile = NewProfile {
         user_id: profile.user_id,
-        first_name: profile.first_name.clone(),
-        last_name: profile.last_name.clone(),
-        display_name: body.display_name.clone().or(profile.display_name.clone()),
-        slug: body.slug.clone().or(profile.slug.clone()),
+        first_name_enc: profile.first_name_enc.clone(),
+        last_name_enc: profile.last_name_enc.clone(),
+        phone_enc: profile.phone_enc.clone(),
+        nickname: body.display_name.clone().or(profile.nickname.clone()),
         bio: body.bio.clone().or(profile.bio.clone()),
         birthday: profile.birthday,
         avatar_url: body.avatar_url.clone().or(profile.avatar_url.clone()),
-        cover_url: body.cover_url.clone().or(profile.cover_url.clone()),
-        social_network: profile.social_network.clone(),
-        is_creator: profile.is_creator,
-        is_agency: profile.is_agency,
         status: profile.status,
+        social_network: profile.social_network.clone(),
     };
 
     let updated = container
