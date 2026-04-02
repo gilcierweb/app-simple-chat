@@ -136,6 +136,7 @@ definePageMeta({
   layout: 'auth',
   guestOnly: true, // Authenticated users will be redirected away
 })
+
 const { t } = useI18n()
 
 const { login, loading } = useAuth()
@@ -152,6 +153,11 @@ async function submit() {
   try {
     await login(email.value, password.value, needsTotp.value ? totpCode.value : undefined)
   } catch (e: any) {
+    // Don't show error if it's a navigation abort (successful login)
+    if (e?.name === 'NavigationAbort' || e?.message?.includes('navigate')) {
+      return
+    }
+    
     const message = e?.data?.message || ''
     const errorStr = e?.data?.error || ''
     if (message.includes('2FA') || (typeof errorStr === 'string' && errorStr.includes('2FA'))) {

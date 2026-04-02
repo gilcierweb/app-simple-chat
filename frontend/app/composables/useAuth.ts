@@ -40,6 +40,9 @@ export const useAuth = () => {
   async function login(email: string, password: string, totpCode?: string) {
     loading.value = true
     error.value = null
+    let loginSuccess = false
+    let targetPath = '/chat'
+    
     try {
       const data = await $fetch<AuthResponse>(`${config.public.apiBase}/auth/login`, {
         method: 'POST',
@@ -54,18 +57,21 @@ export const useAuth = () => {
       const keyStore = useKeyStore()
       await keyStore.ensureKeys(data.access_token)
 
-      // Handle redirect after login
+      // Determine redirect target
       const redirect = route.query.redirect as string
-      if (redirect) {
-        await router.push(decodeURIComponent(redirect))
-      } else {
-        await router.push('/chat')
-      }
+      targetPath = redirect ? decodeURIComponent(redirect) : '/chat'
+      loginSuccess = true
+      
     } catch (e: any) {
       error.value = e?.data?.message || t('auth.errors.loginFailed')
       throw e
     } finally {
       loading.value = false
+    }
+    
+    // Navigate after successful login (outside try-catch)
+    if (loginSuccess) {
+      return navigateTo(targetPath)
     }
   }
 
