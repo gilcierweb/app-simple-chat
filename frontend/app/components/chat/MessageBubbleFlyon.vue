@@ -17,7 +17,10 @@
     </div>
 
     <!-- Chat bubble -->
-    <div class="chat-bubble" :class="{ 'opacity-50': message.deleted_at }">
+    <div class="chat-bubble border border-white/5" :class="[
+      { 'opacity-50': message.deleted_at },
+      isOwn ? '!bg-primary !text-white' : '!bg-dark-700 !text-white'
+    ]">
       <!-- Deleted message -->
       <template v-if="message.deleted_at">
         <span class="italic text-base-content/40">{{ t('chat.message.deleted') }}</span>
