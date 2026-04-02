@@ -47,9 +47,10 @@ export const useAuth = () => {
       const data = await $fetch<AuthResponse>(`${config.public.apiBase}/auth/login`, {
         method: 'POST',
         body: { email, password, totp_code: totpCode || undefined },
+        credentials: 'include', // Crucial for HttpOnly cookies
       })
 
-      // Store tokens in Pinia (automatically persisted to cookies)
+      // Store tokens in Pinia (access_token stays in memory)
       authStore.setTokens(data.access_token, data.refresh_token)
       authStore.setUser(data.user)
 
@@ -75,37 +76,44 @@ export const useAuth = () => {
     }
   }
 
-  async function logout() {
+  async function logout(preventRedirect = false) {
     const token = authStore.accessToken
     if (token) {
       try {
         await $fetch(`${config.public.apiBase}/auth/logout`, {
           method: 'POST',
           headers: { Authorization: `Bearer ${token}` },
+          credentials: 'include', // Clear the backend HttpOnly cookie
         })
       } catch {}
     }
     
     // Clear everything via store (cookies cleared automatically)
     authStore.logout()
-    await router.push('/auth/login')
+    
+    if (!preventRedirect) {
+      if (import.meta.client) {
+        await router.push('/auth/login')
+      } else {
+        return navigateTo('/auth/login')
+      }
+    }
   }
 
   async function refreshAccessToken(): Promise<string | null> {
-    const refreshToken = authStore.refreshToken
-    if (!refreshToken) return null
     try {
-      const data = await $fetch<{ access_token: string; refresh_token: string }>(
-        `${config.public.apiBase}/auth/refresh`,
-        { method: 'POST', body: { refresh_token: refreshToken } },
-      )
+      const fetcher = import.meta.client ? $fetch : useRequestFetch()
+      const data = await fetcher<{ access_token: string }>(`${config.public.apiBase}/auth/refresh`, { 
+        method: 'POST',
+        credentials: 'include',
+      })
       
-      // Update tokens in store (automatically persisted to cookies)
-      authStore.setTokens(data.access_token, data.refresh_token)
+      // Update tokens in store 
+      authStore.setTokens(data.access_token, null)
       
       return data.access_token
     } catch {
-      await logout()
+      await logout(true)
       return null
     }
   }
@@ -140,5 +148,5 @@ export const useAuth = () => {
     }
   }
 
-  return { user, loading, error, isAuthenticated, accessToken, register, login, logout, authFetch }
+  return { user, loading, error, isAuthenticated, accessToken, register, login, logout, authFetch, refreshAccessToken }
 }

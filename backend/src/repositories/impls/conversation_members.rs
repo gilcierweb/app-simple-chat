@@ -1,5 +1,4 @@
-use async_trait::async_trait;
-use diesel::{OptionalExtension, RunQueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::db::schema::conversation_members;
@@ -26,7 +25,6 @@ impl IConversationMemberRepository for BaseRepo {
         &self,
         conversation_id: Uuid,
     ) -> diesel::QueryResult<Vec<ConversationMember>> {
-        use diesel::{ExpressionMethods, QueryDsl};
         self.run(move |conn| {
             conversation_members::table
                 .filter(conversation_members::conversation_id.eq(conversation_id))
@@ -40,7 +38,6 @@ impl IConversationMemberRepository for BaseRepo {
         conversation_id: Uuid,
         user_id: Uuid,
     ) -> diesel::QueryResult<Option<ConversationMember>> {
-        use diesel::{ExpressionMethods, QueryDsl};
         self.run(move |conn| {
             conversation_members::table
                 .filter(conversation_members::conversation_id.eq(conversation_id))

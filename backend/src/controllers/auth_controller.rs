@@ -7,7 +7,7 @@ use crate::{
     models::user::{NewUser, User},
     repositories::container::AppContainer,
 };
-use actix_web::{HttpRequest, HttpResponse, get, post, web};
+use actix_web::{HttpRequest, HttpResponse, get, post, web, cookie::{Cookie, SameSite, time::Duration as CookieDuration}};
 use chrono::Utc;
 use diesel::result::Error as DieselError;
 use serde::{Deserialize, Serialize};
@@ -37,7 +37,7 @@ pub struct LoginRequest {
 
 #[derive(Debug, Deserialize)]
 pub struct RefreshRequest {
-    pub refresh_token: String,
+    pub refresh_token: Option<String>,
 }
 
 #[derive(Debug, Deserialize, Validate)]
@@ -313,28 +313,51 @@ pub async fn login(
         .await
         .map_err(AppError::Database)?;
 
-    Ok(HttpResponse::Ok().json(AuthResponse {
-        access_token,
-        refresh_token: refresh_token_plain,
-        token_type: "Bearer",
-        expires_in: container.config.jwt_access_expiry_secs,
-        user: UserInfo {
-            id: user.id,
-            email: user.email.clone(),
-            profile_id: profile.id,
-            is_otp_enabled: user.is_otp_enabled(),
-            roles,
-        },
-    }))
+    // Create HttpOnly cookie for the refresh token
+    let mut cookie = Cookie::build("refresh_token", refresh_token_plain.clone())
+        .path("/api/v1/auth")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .max_age(CookieDuration::seconds(container.config.jwt_refresh_expiry_secs as i64))
+        .finish();
+
+    // Secure flag only in production (if using HTTPS)
+    if container.config.is_production() {
+        cookie.set_secure(true);
+    }
+
+    Ok(HttpResponse::Ok()
+        .cookie(cookie)
+        .json(AuthResponse {
+            access_token,
+            refresh_token: refresh_token_plain,
+            token_type: "Bearer",
+            expires_in: container.config.jwt_access_expiry_secs,
+            user: UserInfo {
+                id: user.id,
+                email: user.email.clone(),
+                profile_id: profile.id,
+                is_otp_enabled: user.is_otp_enabled(),
+                roles,
+            },
+        }))
 }
 
 // POST /api/auth/refresh
 #[post("/refresh")]
 pub async fn refresh(
+    req: HttpRequest,
     container: web::Data<AppContainer>,
     body: web::Json<RefreshRequest>,
 ) -> AppResult<HttpResponse> {
-    let token_hash = hash_token(&body.refresh_token);
+    // 1. Try to get token from HttpOnly cookie first
+    // 2. Fallback to JSON body for non-browser clients
+    let refresh_token = req.cookie("refresh_token")
+        .map(|c| c.value().to_string())
+        .or_else(|| body.refresh_token.clone())
+        .ok_or_else(|| AppError::Unauthorized(t!("auth.refresh.invalid_token").into_owned()))?;
+
+    let token_hash = hash_token(&refresh_token);
 
     let stored: RefreshToken = match container
         .refresh_tokens
@@ -404,37 +427,66 @@ pub async fn refresh(
         .await
         .map_err(AppError::Database)?;
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "access_token": access_token,
-        "refresh_token": new_refresh_plain,
-        "token_type": "Bearer",
-        "expires_in": container.config.jwt_access_expiry_secs,
-    })))
+    // Refresh cookie
+    let mut cookie = Cookie::build("refresh_token", new_refresh_plain.clone())
+        .path("/api/v1/auth")
+        .http_only(true)
+        .same_site(SameSite::Lax)
+        .max_age(CookieDuration::seconds(container.config.jwt_refresh_expiry_secs as i64))
+        .finish();
+
+    if container.config.is_production() {
+        cookie.set_secure(true);
+    }
+
+    Ok(HttpResponse::Ok()
+        .cookie(cookie)
+        .json(serde_json::json!({
+            "access_token": access_token,
+            "refresh_token": new_refresh_plain,
+            "token_type": "Bearer",
+            "expires_in": container.config.jwt_access_expiry_secs,
+        })))
 }
 
 // POST /api/auth/logout
 #[post("/logout")]
 pub async fn logout(
+    req: HttpRequest,
     container: web::Data<AppContainer>,
     body: web::Json<RefreshRequest>,
 ) -> AppResult<HttpResponse> {
-    let token_hash = hash_token(&body.refresh_token);
+    let refresh_token = req.cookie("refresh_token")
+        .map(|c| c.value().to_string())
+        .or_else(|| body.refresh_token.clone());
 
-    if let Ok(Some(token)) = container
-        .refresh_tokens
-        .find_by_token_hash(&token_hash)
-        .await
-    {
-        container
+    if let Some(token_val) = refresh_token {
+        let token_hash = hash_token(&token_val);
+
+        if let Ok(Some(token)) = container
             .refresh_tokens
-            .revoke(&token.id)
+            .find_by_token_hash(&token_hash)
             .await
-            .map_err(AppError::Database)?;
+        {
+            container
+                .refresh_tokens
+                .revoke(&token.id)
+                .await
+                .map_err(AppError::Database)?;
+        }
     }
 
-    Ok(HttpResponse::Ok().json(serde_json::json!({
-        "message": t!("auth.logout.success")
-    })))
+    // Clear the HttpOnly cookie
+    let cookie = Cookie::build("refresh_token", "")
+        .path("/api/v1/auth")
+        .max_age(CookieDuration::seconds(0))
+        .finish();
+
+    Ok(HttpResponse::Ok()
+        .cookie(cookie)
+        .json(serde_json::json!({
+            "message": t!("auth.logout.success")
+        })))
 }
 
 // POST /api/auth/recover

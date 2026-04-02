@@ -24,9 +24,13 @@ export const useAuthStore = defineStore('auth', () => {
   const accessToken = ref<string | null>(null)
   const refreshToken = ref<string | null>(null)
   const userRoles = ref<string[]>([])
+  const isInitialHydration = ref(true)
 
   // Getters
-  const isAuthenticated = computed(() => !!user.value && !!accessToken.value)
+  const isAuthenticated = computed(() => {
+    // If we have a user and (token exists OR we are still hydrating), consider auth'd
+    return !!user.value && (!!accessToken.value || isInitialHydration.value)
+  })
   
   const isTokenExpired = computed(() => {
     if (!accessToken.value) return true
@@ -128,8 +132,11 @@ export const useAuthStore = defineStore('auth', () => {
     setTokens,
     logout,
     parseJwt,
+    isInitialHydration,
   }
 }, {
-  // SSR-friendly persistence via cookies (configured in nuxt.config.ts)
-  persist: true,
+  // Persistence via cookies - only safe profile/role info
+  persist: {
+    pick: ['user', 'profile', 'userRoles']
+  }
 })

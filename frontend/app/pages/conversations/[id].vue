@@ -93,7 +93,7 @@ import { useConversationStore } from '~/stores/conversations'
 import MessageBubble from '~/components/chat/MessageBubble.vue'
 import MessageInput from '~/components/chat/MessageInput.vue'
 
-definePageMeta({ 
+definePageMeta({
   layout: 'default',
   requiresAuth: true,
 })
@@ -102,30 +102,22 @@ const route = useRoute()
 const conversationId = route.params.id as string
 
 const authStore = useAuthStore()
-console.log('[DEBUG] authStore.user:', authStore.user, 'authStore.user?.id:', authStore.user?.id)
 const convStore = useConversationStore()
-const { authFetch } = useAuth()
-const keyStore = useKeyStore()
 const messageStore = useMessages()
 const ws = useWebSocket()
-const toast = useToast()
-const ENCRYPTED_PLACEHOLDER = '🔒 Encrypted message'
-const UNABLE_TO_DECRYPT_PLACEHOLDER = '[Unable to decrypt]'
+const chat = useChat()
 
-const loading = ref(false)
+const loading = computed(() => convStore.loadingMessages)
 const showSearch = ref(false)
 const searchQuery = ref('')
 const searchResults = ref<Message[]>([])
 const messagesEl = ref<HTMLElement>()
 const bottomEl = ref<HTMLElement>()
 
-const conversation = computed(() => {
-  const conv = convStore.conversations.find(c => c.id === conversationId)
-  console.log('[DEBUG] Computed conversation:', conv, 'for ID:', conversationId)
-  console.log('[DEBUG] All conversations in store:', convStore.conversations)
-  return conv
-})
-const conversationName = computed(() => conversation.value?.name ?? 'Unknown')
+const conversation = computed(() =>
+  convStore.conversations.find((c: { id: string }) => c.id === conversationId)
+)
+const conversationName = computed(() => conversation.value?.name ?? 'Direct message')
 const conversationInitial = computed(() => (conversationName.value[0] ?? '?').toUpperCase())
 const memberCount = computed(() => conversation.value?.members?.length ?? 0)
 const typingUserIds = computed(() => convStore.getTypingUsers(conversationId))
@@ -143,9 +135,7 @@ const displayMessages = computed(() =>
 
 function showDateSeparator(msg: Message, prev?: Message): boolean {
   if (!prev) return true
-  const a = new Date(prev.created_at).toDateString()
-  const b = new Date(msg.created_at).toDateString()
-  return a !== b
+  return new Date(prev.created_at).toDateString() !== new Date(msg.created_at).toDateString()
 }
 
 function shouldShowAvatar(msg: Message, prev?: Message): boolean {
@@ -163,198 +153,15 @@ function formatDate(iso: string): string {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-function isPlaceholderMessage(msg?: Message | null): boolean {
-  if (!msg) return false
-  if (msg.is_placeholder) return true
-
-  // Backward compatibility with old locally cached placeholders (without flag)
-  return msg.plaintext === ENCRYPTED_PLACEHOLDER || msg.plaintext === UNABLE_TO_DECRYPT_PLACEHOLDER
-}
-
-async function loadMessages() {
-  loading.value = true
-  convStore.setActiveConversation(conversationId)
-  try {
-    // First load from local IndexedDB
-    const local = await messageStore.loadLocal(conversationId)
-    console.log('[DEBUG] Loaded local messages:', local.length, 'messages:', local)
-    
-    // Check if local messages have plaintext
-    const hasLocalPlaintext = local.some(msg => msg.plaintext)
-    console.log('[DEBUG] Local messages have plaintext:', hasLocalPlaintext)
-    
-    convStore.setMessages(conversationId, local)
-
-    // Ensure session key exists before fetching messages
-    const peerUserId = conversation.value?.members?.find(m => m.user_id !== authStore.user?.id)?.user_id
-    console.log('[DEBUG] Peer user ID for loadMessages:', peerUserId)
-    let peerBundle: {
-      identity_key: string
-      signed_prekey: string
-      one_time_prekey: string | null
-    } | null = null
-
-    if (peerUserId) {
-      console.log('[DEBUG] Ensuring session exists...')
-      
-      // Check if peer has keys
-      peerBundle = await keyStore.fetchPeerBundle(peerUserId)
-      console.log('[DEBUG] Peer bundle exists:', !!peerBundle)
-      if (!peerBundle) {
-        console.log('[DEBUG] Peer user has not uploaded encryption keys yet')
-        
-        // Show user-friendly notification
-        const peerName = conversation.value?.name || 'This user'
-        const notification = `⚠️ ${peerName} has not set up encryption keys yet. Messages will appear encrypted until they log in again.`
-        
-        setTimeout(() => {
-          toast.warning(notification, { duration: 8000 })
-        }, 1000)
-        
-        // Also add a warning message to the chat
-        const warningMsg = {
-          id: crypto.randomUUID(),
-          conversation_id: conversationId,
-          sender_id: 'system',
-          ciphertext: '',
-          iv: '',
-          message_type: 'text' as any,
-          reply_to_id: null,
-          created_at: new Date().toISOString(),
-          deleted_at: null,
-          plaintext: notification,
-          is_placeholder: true,
-          status: 'delivered' as any,
-        }
-        
-        // Add warning message to local messages
-        const updatedLocal = [...local, warningMsg]
-        convStore.setMessages(conversationId, updatedLocal)
-      }
-      
-      if (peerBundle) {
-        await keyStore.getSessionKey(conversationId, peerUserId, peerBundle).catch(console.error)
-      } else {
-        await keyStore.ensureSession(conversationId, peerUserId).catch(console.error)
-      }
-    }
-
-    // Then fetch from server and decrypt
-    console.log('[DEBUG] Fetching messages from server...')
-    const remote: Message[] = await authFetch(`/messages/${conversationId}`)
-    console.log('[DEBUG] Fetched remote messages:', remote.length)
-    const sessionKey = peerUserId
-      ? await keyStore.getSessionKey(conversationId, peerUserId, peerBundle ?? undefined).catch(() => null)
-      : null
-    console.log('[DEBUG] Session key for decryption:', sessionKey ? 'found' : 'not found')
-
-    const decryptedRemote = await Promise.all(
-      remote.map(async (msg) => {
-        // Check if we have a decrypted version locally
-        const localMsg = local.find(l => l.id === msg.id)
-        if (localMsg?.plaintext && !isPlaceholderMessage(localMsg) && (!sessionKey || msg.deleted_at)) {
-          console.log('[DEBUG] Using local plaintext for message:', msg.id)
-          return localMsg
-        }
-        
-        if (!sessionKey || msg.deleted_at) {
-          console.log('[DEBUG] Skipping decryption for message:', msg.id, 'sessionKey:', !!sessionKey, 'deleted_at:', msg.deleted_at)
-          return { ...msg, plaintext: ENCRYPTED_PLACEHOLDER, is_placeholder: true }
-        }
-        try {
-          console.log('[DEBUG] Decrypting message:', msg.id)
-          const plaintext = await keyStore.decrypt(sessionKey, msg.ciphertext, msg.iv)
-          console.log('[DEBUG] Decrypted successfully:', msg.id, 'plaintext:', plaintext.substring(0, 50) + '...')
-          return { ...msg, plaintext }
-        } catch (err) {
-          console.error('[DEBUG] Decryption failed for message:', msg.id, err)
-          // Fall back to local plaintext if available
-          if (localMsg?.plaintext) {
-            if (isPlaceholderMessage(localMsg)) {
-              return { ...msg, plaintext: ENCRYPTED_PLACEHOLDER, is_placeholder: true }
-            }
-            console.log('[DEBUG] Falling back to local plaintext for message:', msg.id)
-            return localMsg
-          }
-          return { ...msg, plaintext: ENCRYPTED_PLACEHOLDER, is_placeholder: true }
-        }
-      }),
-    )
-
-    // Merge remote + local by message ID, always preserving legitimate plaintext if we already have it.
-    // This prevents chat content from "disappearing" when a decrypt attempt temporarily fails.
-    const mergedById = new Map<string, Message>()
-
-    for (const localMsg of local) {
-      if (!isPlaceholderMessage(localMsg)) {
-        mergedById.set(localMsg.id, localMsg)
-      }
-    }
-
-    for (const remoteMsg of decryptedRemote) {
-      const existing = mergedById.get(remoteMsg.id)
-      if (existing && !isPlaceholderMessage(existing) && isPlaceholderMessage(remoteMsg)) {
-        // Keep known-good plaintext from local cache, but refresh server fields.
-        mergedById.set(remoteMsg.id, {
-          ...remoteMsg,
-          plaintext: existing.plaintext,
-          is_placeholder: false,
-        })
-        continue
-      }
-      mergedById.set(remoteMsg.id, remoteMsg)
-    }
-
-    const finalMessages = [...mergedById.values()].sort(
-      (a, b) => new Date(a.created_at).getTime() - new Date(b.created_at).getTime(),
-    )
-
-    console.log('[DEBUG] Final merged messages:', finalMessages.length)
-    convStore.setMessages(conversationId, finalMessages)
-    // Persist locally - only save messages with actual plaintext
-    const messagesToSave = finalMessages.filter(m => {
-      const hasPlaintext = !!m.plaintext
-      const isNotPlaceholder = !isPlaceholderMessage(m)
-      const isNotWarning = !m.plaintext?.startsWith('⚠️')
-      const isNotSystem = m.sender_id !== 'system'
-      
-      console.log('[DEBUG] Message filter:', m.id, {
-        hasPlaintext,
-        plaintext: m.plaintext?.substring(0, 30),
-        isNotPlaceholder,
-        isNotWarning,
-        isNotSystem,
-        sender_id: m.sender_id
-      })
-      
-      return hasPlaintext && isNotPlaceholder && isNotWarning && isNotSystem
-    })
-    console.log('[DEBUG] Saving', messagesToSave.length, 'messages to local storage')
-    await Promise.all(messagesToSave.map(m => messageStore.saveLocal(m)))
-  } catch (e) {
-    console.error('Failed to load messages', e)
-  } finally {
-    loading.value = false
-    scrollToBottom()
-  }
-}
-
 function scrollToBottom(smooth = false) {
   nextTick(() => {
     if (!messagesEl.value || !bottomEl.value) return
-    
     const container = messagesEl.value
     const target = bottomEl.value
     const targetPosition = target.offsetTop - container.offsetTop + target.offsetHeight
-    
-    if (smooth) {
-      container.scrollTo({
-        top: targetPosition,
-        behavior: 'smooth'
-      })
-    } else {
-      container.scrollTop = targetPosition
-    }
+    smooth
+      ? container.scrollTo({ top: targetPosition, behavior: 'smooth' })
+      : (container.scrollTop = targetPosition)
   })
 }
 
@@ -365,105 +172,43 @@ async function onSearch() {
 
 function onMessageSent(msg: Message) {
   convStore.appendMessage(msg)
-  if (msg.plaintext && !isPlaceholderMessage(msg) && msg.sender_id !== 'system') {
+  if (msg.plaintext && !msg.is_placeholder && msg.sender_id !== 'system') {
     void messageStore.saveLocal(msg)
   }
   scrollToBottom(true)
 }
 
+const { authFetch } = useAuth()
+
 async function deleteMessage(messageId: string) {
   try {
-    await authFetch(`/messages/${conversationId}/${messageId}`, { method: 'DELETE' })
+    await authFetch(`/conversations/${conversationId}/messages/${messageId}`, { method: 'DELETE' })
     convStore.deleteMessage(conversationId, messageId)
-  } catch (e) {
+  }
+  catch (e) {
     console.error('Failed to delete message', e)
   }
 }
 
-// Handle incoming WS messages
 let unsubscribeWs: (() => void) | null = null
 
 onMounted(async () => {
-  console.log('[DEBUG] Component mounted, conversationId:', conversationId)
-  console.log('[DEBUG] Auth user on mount:', authStore.user)
-  console.log('[DEBUG] Conversations in store on mount:', convStore.conversations)
-  
-  // Load conversations if store is empty
+  // Load conversation list if store empty
   if (convStore.conversations.length === 0) {
-    console.log('[DEBUG] Loading conversations from server...')
-    try {
-      const conversations = await authFetch('/conversations')
-      convStore.setConversations(conversations)
-      console.log('[DEBUG] Loaded conversations:', conversations)
-    } catch (e) {
-      console.error('[DEBUG] Failed to load conversations:', e)
-    }
+    await chat.loadConversations().catch(console.error)
   }
-  
-  await loadMessages()
-  
-  // Join conversation room for real-time updates
-  ws.joinRoom(conversationId)
 
+  // openConversation: IndexedDB cache → server fetch → batch decrypt → join WS room
+  await chat.openConversation(conversationId)
+  scrollToBottom()
+
+  // Real-time WS subscription
   unsubscribeWs = ws.on(async (event) => {
-    console.log('WS handler received:', event, 'type:', event?.type, 'conversationId:', conversationId)
     if (event.type === 'new_message' && event.conversation_id === conversationId) {
-      console.log('Processing new_message for conversation:', conversationId, 'event.conv:', event.conversation_id, 'MATCH!')
-      // Use sender_id to get the correct session key for decryption
-      const senderId = event.sender_id
-      const isOwnMessage = senderId === authStore.user?.id
-      console.log('Sender ID for decryption:', senderId)
-      // Fetch peer bundle from sender and establish/get session key
-      let sessionKey: CryptoKey | null = null
-      if (!isOwnMessage) {
-        try {
-          const bundle = await keyStore.fetchPeerBundle(senderId)
-          if (bundle) {
-            sessionKey = await keyStore.getSessionKey(conversationId, senderId, bundle)
-          }
-        } catch (err) {
-          console.error('Failed to get session key:', err)
-        }
-      }
-      console.log('Session key:', sessionKey)
-      let plaintext = UNABLE_TO_DECRYPT_PLACEHOLDER
-      if (isOwnMessage) {
-        const existing = (convStore.messages[conversationId] ?? []).find(m => m.id === event.message_id)
-        if (existing?.plaintext && !isPlaceholderMessage(existing)) {
-          plaintext = existing.plaintext
-        }
-      } else if (sessionKey) {
-        try { 
-          plaintext = await keyStore.decrypt(sessionKey, event.ciphertext, event.iv) 
-        } catch (err) { 
-          console.error('Decrypt error:', err) 
-        }
-      }
-      const msg: Message = {
-        id: event.message_id,
-        conversation_id: event.conversation_id,
-        sender_id: event.sender_id,
-        ciphertext: event.ciphertext,
-        iv: event.iv,
-        message_type: event.message_type as any,
-        reply_to_id: event.reply_to_id,
-        created_at: event.created_at,
-        deleted_at: null,
-        plaintext,
-        is_placeholder: plaintext === UNABLE_TO_DECRYPT_PLACEHOLDER,
-        status: 'delivered',
-      }
-      console.log('Adding message to store:', msg)
-      convStore.appendMessage(msg)
-      if (!isPlaceholderMessage(msg) && msg.sender_id !== 'system') {
-        await messageStore.saveLocal(msg)
-      }
+      chat.handleIncomingMessage(event as any)
       scrollToBottom(true)
-
-      // Mark as read if this conversation is active
       ws.sendMarkRead(conversationId, event.message_id)
     }
-
     if (event.type === 'typing' && event.conversation_id === conversationId) {
       convStore.setTyping(conversationId, event.user_id, true)
       setTimeout(() => convStore.setTyping(conversationId, event.user_id, false), 3000)
@@ -473,8 +218,6 @@ onMounted(async () => {
 
 onUnmounted(() => {
   ws.leaveRoom(conversationId)
-  // Avoid race conditions when navigating quickly between conversations:
-  // only clear active conversation if this page is still the active one.
   if (convStore.activeConversationId === conversationId) {
     convStore.setActiveConversation(null)
   }

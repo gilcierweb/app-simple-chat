@@ -32,6 +32,7 @@ async function getDb(): Promise<IDBPDatabase> {
 
 export const useKeyStore = () => {
   const config = useRuntimeConfig()
+  const authStore = useAuthStore()
 
   /**
    * Generate X25519 ECDH key pair.
@@ -106,25 +107,32 @@ export const useKeyStore = () => {
   /**
    * Decrypt ciphertext with AES-256-GCM.
    */
-  async function decrypt(key: CryptoKey, ciphertext: string, iv: string): Promise<string> {
+  async function decrypt(key: CryptoKey, ciphertextInput: string | number[], iv: string): Promise<string> {
     try {
-      // Convert base64 to Uint8Array properly
-      const ctString = atob(ciphertext)
-      const ct = new Uint8Array(ctString.length)
-      for (let i = 0; i < ctString.length; i++) {
-        ct[i] = ctString.charCodeAt(i)
+      // 1. Prepare Ciphertext
+      let ct: Uint8Array
+      if (Array.isArray(ciphertextInput)) {
+        ct = new Uint8Array(ciphertextInput)
+      } else {
+        const ctString = atob(ciphertextInput)
+        ct = new Uint8Array(ctString.length)
+        for (let i = 0; i < ctString.length; i++) {
+          ct[i] = ctString.charCodeAt(i)
+        }
       }
       
+      // 2. Prepare IV
       const ivString = atob(iv)
       const ivBytes = new Uint8Array(ivString.length)
       for (let i = 0; i < ivString.length; i++) {
         ivBytes[i] = ivString.charCodeAt(i)
       }
       
+      console.log(`[Decryption] Attempting with ct-len: ${ct.length}, iv-len: ${ivBytes.length}`)
       const plain = await crypto.subtle.decrypt({ name: 'AES-GCM', iv: ivBytes }, key, ct)
       return new TextDecoder().decode(plain)
     } catch (error) {
-      console.error('Decryption error:', error)
+      console.error('[Decryption] DOMException details:', error)
       throw error
     }
   }
@@ -283,7 +291,6 @@ export const useKeyStore = () => {
     signed_prekey: string
     one_time_prekey: string | null
   } | null> {
-    const authStore = useAuthStore()
     const token = authStore.accessToken
     
     if (!token) {
@@ -293,20 +300,32 @@ export const useKeyStore = () => {
     
     try {
       const response = await $fetch<{
-        identity_key: string
-        signed_prekey: string
-        one_time_prekey: string | null
+        status: string
+        data: {
+          identity_key: string
+          signed_prekey: string
+          one_time_prekey: string | null
+        }
       }>(`${config.public.apiBase}/keys/${peerUserId}`, {
         headers: {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
         },
       })
-      return response
+      return response.data || null
     } catch (e: any) {
       console.error('[fetchPeerBundle] Failed:', e?.statusCode, e?.message)
       return null
     }
+  }
+
+  /**
+   * Remove a session key from cache.
+   */
+  async function invalidateSession(conversationId: string, peerUserId: string): Promise<void> {
+    const cacheKey = `session:v3:${conversationId}:${peerUserId}`
+    const db = await getDb()
+    await db.delete(STORE_KEYS, cacheKey)
   }
 
   /**
@@ -351,7 +370,8 @@ export const useKeyStore = () => {
 
     const spkSignature = btoa('self-signed:' + spkPubB64.substring(0, 32))
 
-    const response = await $fetch(`${config.public.apiBase}/keys`, {
+    // POST /api/v1/keys/upload (matches backend keys_controller)
+    const response = await $fetch(`${config.public.apiBase}/keys/upload`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -359,7 +379,8 @@ export const useKeyStore = () => {
       },
       body: {
         identity_key: identityPubB64,
-        signed_prekey: { public_key: spkPubB64, signature: spkSignature },
+        signed_prekey: spkPubB64,
+        signed_signature: spkSignature,
         one_time_prekeys: otpks,
       },
     })
@@ -383,5 +404,6 @@ export const useKeyStore = () => {
     ensureSession,
     uploadKeysToServer,
     fetchPeerBundle,
+    invalidateSession,
   }
 }

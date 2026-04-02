@@ -46,8 +46,6 @@
 
 <script setup lang="ts">
 import type { Message, Conversation } from '~/types'
-import { useAuthStore } from '~/stores/auth'
-import { useConversationStore } from '~/stores/conversations'
 
 const props = defineProps<{
   conversationId: string
@@ -58,11 +56,12 @@ const emit = defineEmits<{
   sent: [msg: Message]
 }>()
 
-const { authFetch } = useAuth()
 const keyStore = useKeyStore()
 const ws = useWebSocket()
 const { t } = useI18n()
 const toast = useToast()
+const convStore = useConversationStore()
+const authStore = useAuthStore()
 
 const text = ref('')
 const sending = ref(false)
@@ -85,80 +84,49 @@ function onInput() {
   typingTimeout = setTimeout(() => { typingTimeout = null }, 2000)
 }
 
+const { sendMessage: dispatchSend } = useChat()
+
 async function sendMessage() {
   const content = text.value.trim()
-  console.log('sendMessage called, content:', content)
   if (!content || props.disabled || sending.value) return
 
   sending.value = true
-  const optimisticId = crypto.randomUUID()
 
   try {
-    // Get peer user ID from conversation members
-    const convStore = useConversationStore()
-    console.log('[DEBUG] All conversations:', convStore.conversations)
-    console.log('[DEBUG] Looking for conversation ID:', props.conversationId)
-    const conversation = convStore.conversations.find((c: Conversation) => c.id === props.conversationId)
-    console.log('[DEBUG] Found conversation:', conversation)
-    console.log('[DEBUG] Conversation members:', conversation?.members)
-    const currentUserId = useAuthStore().user?.id
-    console.log('[DEBUG] Current user ID:', currentUserId)
-    // @ts-ignore - member structure is not fully typed
-    const peerUserId = conversation?.members?.find((m) => m.user_id !== currentUserId)?.user_id
-    console.log('[DEBUG] Peer user ID found:', peerUserId)
+    // Resolve peer user ID from store
+    const conversation = convStore.conversations.find(
+      (c: Conversation) => c.id === props.conversationId
+    )
+    const currentUserId = authStore.user?.id
+    const peerUserId = conversation?.members?.find(
+      (m: { user_id: string }) => m.user_id !== currentUserId
+    )?.user_id
 
     if (!peerUserId) {
-      console.error('Could not find peer user ID')
       throw new Error(t('chat.input.errors.cannotFindPeer'))
     }
 
-    // Encrypt message client-side
-    console.log('Getting session key for:', props.conversationId, 'peer:', peerUserId)
-    
-    // Always fetch latest peer bundle before encrypting.
-    // This avoids using stale cached session keys after peer key rotation.
-    const bundle = await keyStore.fetchPeerBundle(peerUserId)
-    if (!bundle) {
-      throw new Error(t('chat.input.errors.peerNoKeys'))
-    }
-    const sessionKey = await keyStore.getSessionKey(props.conversationId, peerUserId, bundle).catch(() => null)
-    if (!sessionKey) {
-      throw new Error(t('chat.input.errors.needPeerBundle'))
-    }
-    
-    console.log('Session key obtained:', sessionKey)
-    const { ciphertext, iv } = await keyStore.encrypt(sessionKey, content)
-    console.log('Encrypted message, ciphertext length:', ciphertext.length)
-
-    text.value = ''
-    if (textareaEl.value) {
-      textareaEl.value.style.height = 'auto'
-    }
-
-    // Send to server (no optimistic - will be added via WebSocket)
-    console.log('Sending to server...')
-    const msg = await authFetch<Message>(`/messages/${props.conversationId}`, {
-      method: 'POST',
-      body: JSON.stringify({ ciphertext, iv, message_type: 1 }),
+    // Use the central useChat orchestrator
+    // It handles: Session key derivation, encryption, HTTP POST, and local state update
+    await dispatchSend({
+      conversationId: props.conversationId,
+      plaintext: content,
+      peerUserId
     })
-    console.log('Message sent:', msg)
-    
-    // Emit so the sender sees the message immediately
-    emit('sent', { ...msg, plaintext: content, status: 'sent' })
-  } catch (e: any) {
+
+    // Clear textarea upon success
+    text.value = ''
+    if (textareaEl.value) textareaEl.value.style.height = 'auto'
+  }
+  catch (e: any) {
     console.error('Failed to send message', e)
-    // Show user-friendly error for missing encryption keys
-    if (e?.message?.includes('encryption keys')) {
-      toast.error(e.message, { duration: 7000 })
-    }
-    // Mark optimistic message as failed
-  } finally {
+    const userMsg = e?.message ?? t('chat.input.errors.sendFailed', 'Failed to send')
+    toast.error(userMsg, { duration: 6000 })
+  }
+  finally {
     sending.value = false
-    // Restore focus after textarea is re-enabled - use requestAnimationFrame for reliability
     requestAnimationFrame(() => {
-      setTimeout(() => {
-        textareaEl.value?.focus()
-      }, 10)
+      setTimeout(() => textareaEl.value?.focus(), 10)
     })
   }
 }

@@ -1,6 +1,5 @@
-use async_trait::async_trait;
 use chrono::Utc;
-use diesel::{OptionalExtension, RunQueryDsl};
+use diesel::{ExpressionMethods, OptionalExtension, QueryDsl, RunQueryDsl};
 use uuid::Uuid;
 
 use crate::db::schema::messages;
@@ -46,7 +45,7 @@ impl IMessageRepository for BaseRepo {
         before: Option<Uuid>,
         limit: i64,
     ) -> diesel::QueryResult<Vec<Message>> {
-        use diesel::{ExpressionMethods, OptionalExtension, QueryDsl};
+        // ExpressionMethods, OptionalExtension, QueryDsl already imported at top
 
         let before_ts = if let Some(before_id) = before {
             Some(before_id)
@@ -99,7 +98,7 @@ impl IMessageRepository for BaseRepo {
         user_id: Uuid,
         status: i32,
     ) -> diesel::QueryResult<()> {
-        use diesel::{ExpressionMethods, Insertable, QueryDsl, RunQueryDsl};
+        use diesel::Insertable;
 
         let now = Utc::now();
 

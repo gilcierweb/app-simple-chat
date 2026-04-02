@@ -64,9 +64,6 @@ pub fn config(cfg: &mut web::ServiceConfig, redis_pool: deadpool_redis::Pool) {
             .service(conversations_controller::delete_message)
             .service(conversations_controller::lookup_user_by_email)
             // Messages routes
-            .service(messages_controller::list)
-            .service(messages_controller::send)
-            .service(messages_controller::delete)
             .service(messages_controller::update_receipt)
             // Keys routes
             .service(keys_controller::upload_keys)

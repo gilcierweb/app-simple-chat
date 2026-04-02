@@ -334,7 +334,26 @@ pub async fn send_message(
         .await
         .map_err(AppError::Database)?;
 
-    let response = MessageResponse::from(msg);
+    let response = MessageResponse::from(msg.clone());
+
+    // Broadcast to conversation members via WebSocket
+    tracing::info!(conv_id = %conversation_id, "Broadcasting new message to room");
+    let ws_msg = crate::ws::server::WsMessage::new(
+        "new_message",
+        serde_json::json!({
+            "conversation_id": conversation_id,
+            "message_id": msg.id,
+            "sender_id": msg.sender_id,
+            "ciphertext": response.ciphertext, // Use Base64 from response
+            "iv": response.iv,
+            "message_type": response.message_type,
+            "reply_to_id": response.reply_to_id,
+            "created_at": response.created_at,
+        }),
+    );
+    container
+        .ws_state
+        .broadcast_to_room(&conversation_id.to_string(), ws_msg);
 
     Ok(HttpResponse::Created().json(response))
 }

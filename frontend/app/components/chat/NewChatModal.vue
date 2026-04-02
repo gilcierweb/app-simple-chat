@@ -99,6 +99,7 @@ const emit = defineEmits<{
 const { authFetch } = useAuth()
 const router = useRouter()
 const convStore = useConversationStore()
+const chat = useChat()
 const { t } = useI18n()
 
 const emailInputRef = ref<HTMLInputElement>()
@@ -170,14 +171,10 @@ async function createConversation() {
   creating.value = true
   errorMessage.value = ''
   try {
-    const conv = await authFetch<any>('/conversations', {
-      method: 'POST',
-      body: {
-        participant_user_id: selectedUserId.value,
-        conversation_type: 1,
-      } as any,
+    // useChat.createConversation: creates the convo + pre-warms the E2E session key
+    const conv = await chat.createConversation({
+      participantUserId: selectedUserId.value,
     })
-    convStore.upsertConversation(conv as any)
     closeModal()
     await router.push(`/conversations/${conv.id}`)
   } catch (e: any) {

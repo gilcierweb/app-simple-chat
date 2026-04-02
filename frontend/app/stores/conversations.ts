@@ -67,11 +67,18 @@ export const useConversationStore = defineStore('conversations', () => {
     }
   }
 
-  function appendMessage(msg: Message) {
-    // Create new array to ensure reactivity
+  function appendMessage(msg: Message, replaceId?: string) {
+    // Ensure the conversation key exists in the record
+    if (!messages.value[msg.conversation_id]) {
+      messages.value[msg.conversation_id] = []
+    }
+
     const current = messages.value[msg.conversation_id] || []
-    const idx = current.findIndex(m => m.id === msg.id)
+    // Try to find by ID or the ID we want to replace
+    const idx = current.findIndex(m => m.id === (replaceId || msg.id))
+
     if (idx >= 0) {
+      // Create new array for reactivity
       const next = [...current]
       next[idx] = mergeMessage(next[idx], msg)
       messages.value[msg.conversation_id] = next

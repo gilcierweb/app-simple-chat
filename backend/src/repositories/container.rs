@@ -9,6 +9,7 @@ use crate::repositories::conversations_repository::{
 };
 use crate::repositories::profiles_repository::IProfileRepository;
 use crate::repositories::refresh_tokens_repository::IRefreshTokenRepository;
+use crate::repositories::user_keys_repository::IUserKeyRepository;
 use crate::repositories::users_repository::IUserRepository;
 use crate::ws::server::WsState;
 use diesel::QueryResult;
@@ -22,6 +23,7 @@ pub struct AppContainer {
     pub conversations: Arc<dyn IConversationRepository>,
     pub conversation_members: Arc<dyn IConversationMemberRepository>,
     pub messages: Arc<dyn IMessageRepository>,
+    pub user_keys: Arc<dyn IUserKeyRepository>,
     pub ws_state: Arc<WsState>,
     base: BaseRepo,
 }
@@ -38,6 +40,7 @@ impl AppContainer {
             conversations: Arc::new(base.clone()),
             conversation_members: Arc::new(base.clone()),
             messages: Arc::new(base.clone()),
+            user_keys: Arc::new(base.clone()),
             ws_state,
             base,
         }

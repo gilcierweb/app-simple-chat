@@ -1,4 +1,4 @@
-use actix_web::{HttpResponse, Result, get, web};
+use actix_web::{HttpResponse, Result, get};
 use uuid::Uuid;
 
 #[derive(serde::Serialize)]

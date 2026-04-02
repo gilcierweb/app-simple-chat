@@ -100,7 +100,7 @@ async fn main() -> std::io::Result<()> {
         db: db_pool,
         redis: redis_pool,
         config: config.clone(),
-        ws: ws::WsState::new(),
+        ws: ws_state.get_ref().clone(),
     });
 
     let container = web::Data::new(repositories::AppContainer::new(

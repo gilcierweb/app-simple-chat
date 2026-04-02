@@ -277,34 +277,26 @@ impl WsMessage {
 /// WebSocket actor for handling connections
 pub struct WebSocketActor {
     pub conn_id: String,
-    pub profile_id: Uuid,
-    pub username: String,
+    pub profile_id: Option<Uuid>,
+    pub username: Option<String>,
     pub room: Option<String>,
     pub ws_state: web::Data<WsState>,
+    pub secret: String,
 }
 
 impl Actor for WebSocketActor {
     type Context = ws::WebsocketContext<Self>;
 
-    fn started(&mut self, ctx: &mut Self::Context) {
-        let conn_info = ConnectionInfo {
-            profile_id: self.profile_id,
-            username: self.username.clone(),
-            room: self.room.clone(),
-            addr: ctx.address().recipient(),
-        };
-        self.ws_state
-            .add_connection(self.conn_id.clone(), conn_info);
-
-        tracing::info!(
-            "WebSocket connected: {} (profile: {})",
-            self.conn_id,
-            self.profile_id
-        );
+    fn started(&mut self, _ctx: &mut Self::Context) {
+        // Do not add connection to ws_state or broadcast presence until authenticated!
+        tracing::info!("WebSocket connected (unauthenticated): {}", self.conn_id);
     }
 
     fn stopped(&mut self, _ctx: &mut Self::Context) {
-        self.ws_state.remove_connection(&self.conn_id);
+        // Only remove if it was authenticated and added to state
+        if self.profile_id.is_some() {
+            self.ws_state.remove_connection(&self.conn_id);
+        }
         tracing::info!("WebSocket disconnected: {}", self.conn_id);
     }
 }
@@ -339,88 +331,126 @@ impl WebSocketActor {
     fn handle_message(&mut self, text: &str, ctx: &mut ws::WebsocketContext<Self>) {
         match serde_json::from_str::<ClientMessage>(text) {
             Ok(msg) => match msg.action.as_str() {
-                "join_room" => {
-                    if let Some(room) = msg.data.get("room").and_then(|v| v.as_str()) {
-                        self.room = Some(room.to_string());
-                        // Update connection info
-                        let conn_info = ConnectionInfo {
-                            profile_id: self.profile_id,
-                            username: self.username.clone(),
-                            room: self.room.clone(),
-                            addr: ctx.address().recipient(),
-                        };
-                        self.ws_state
-                            .add_connection(self.conn_id.clone(), conn_info);
+                "auth" => {
+                    if let Some(token) = msg.data.get("token").and_then(|v| v.as_str()) {
+                        match crate::middleware::auth::verify_token(token, &self.secret) {
+                            Ok(claims) => {
+                                self.profile_id = Some(claims.profile_id);
+                                self.username = Some(claims.email.clone());
 
-                        let response = WsMessage::new(
-                            "joined_room",
-                            serde_json::json!({
-                                "room": room,
-                                "user": self.username,
-                            }),
-                        );
-                        ctx.text(serde_json::to_string(&response).unwrap_or_default());
+                                let conn_info = ConnectionInfo {
+                                    profile_id: claims.profile_id,
+                                    username: claims.email,
+                                    room: self.room.clone(),
+                                    addr: ctx.address().recipient(),
+                                };
+                                self.ws_state.add_connection(self.conn_id.clone(), conn_info);
+
+                                let response = WsMessage::new(
+                                    "authenticated",
+                                    serde_json::json!({"status": "success"}),
+                                );
+                                ctx.text(serde_json::to_string(&response).unwrap_or_default());
+                                tracing::info!(
+                                    "WebSocket authenticated: {} (profile: {})",
+                                    self.conn_id, claims.profile_id
+                                );
+                            }
+                            Err(e) => {
+                                tracing::warn!("WebSocket auth failed: {:?}", e);
+                                ctx.close(Some(ws::CloseReason {
+                                    code: ws::CloseCode::Policy,
+                                    description: Some("Invalid token".to_string()),
+                                }));
+                                ctx.stop();
+                            }
+                        }
                     }
-                }
-                "leave_room" => {
-                    self.room = None;
-                    let conn_info = ConnectionInfo {
-                        profile_id: self.profile_id,
-                        username: self.username.clone(),
-                        room: None,
-                        addr: ctx.address().recipient(),
-                    };
-                    self.ws_state
-                        .add_connection(self.conn_id.clone(), conn_info);
-                }
-                "chat" => {
-                    if let (Some(room), Some(content)) =
-                        (&self.room, msg.data.get("content").and_then(|v| v.as_str()))
-                    {
-                        let chat_msg = WsMessage::chat(content, &self.username);
-                        self.ws_state.broadcast_to_room(room, chat_msg);
-                    }
-                }
-                "typing" => {
-                    if let Some(room) = &self.room {
-                        let typing_msg = WsMessage::new(
-                            "typing",
-                            serde_json::json!({
-                                "user": self.username,
-                                "room": room,
-                            }),
-                        );
-                        self.ws_state
-                            .broadcast_to_room_except(room, self.profile_id, typing_msg);
-                    }
-                }
-                "stop_typing" => {
-                    if let Some(room) = &self.room {
-                        let stop_typing_msg = WsMessage::new(
-                            "stop_typing",
-                            serde_json::json!({
-                                "user": self.username,
-                                "room": room,
-                            }),
-                        );
-                        self.ws_state.broadcast_to_room_except(
-                            room,
-                            self.profile_id,
-                            stop_typing_msg,
-                        );
-                    }
-                }
-                "ping" => {
-                    let pong = WsMessage::new(
-                        "pong",
-                        serde_json::json!({
-                            "timestamp": chrono::Utc::now().timestamp(),
-                        }),
-                    );
-                    ctx.text(serde_json::to_string(&pong).unwrap_or_default());
                 }
                 _ => {
-                    tracing::warn!("Unknown WebSocket action: {}", msg.action);
+                    // Enforce authentication for all other actions
+                    let (Some(profile_id), Some(username)) = (self.profile_id, &self.username) else {
+                        tracing::warn!("Unauthenticated action attempt: {}", msg.action);
+                        return;
+                    };
+
+                    match msg.action.as_str() {
+                        "join_room" => {
+                            if let Some(room) = msg.data.get("room").and_then(|v| v.as_str()) {
+                                self.room = Some(room.to_string());
+                                let conn_info = ConnectionInfo {
+                                    profile_id,
+                                    username: username.clone(),
+                                    room: self.room.clone(),
+                                    addr: ctx.address().recipient(),
+                                };
+                                self.ws_state.add_connection(self.conn_id.clone(), conn_info);
+
+                                let response = WsMessage::new(
+                                    "joined_room",
+                                    serde_json::json!({
+                                        "room": room,
+                                        "user": username,
+                                    }),
+                                );
+                                ctx.text(serde_json::to_string(&response).unwrap_or_default());
+                            }
+                        }
+                        "leave_room" => {
+                            self.room = None;
+                            let conn_info = ConnectionInfo {
+                                profile_id,
+                                username: username.clone(),
+                                room: None,
+                                addr: ctx.address().recipient(),
+                            };
+                            self.ws_state.add_connection(self.conn_id.clone(), conn_info);
+                        }
+                        "chat" => {
+                            if let (Some(room), Some(content)) =
+                                (&self.room, msg.data.get("content").and_then(|v| v.as_str()))
+                            {
+                                let chat_msg = WsMessage::chat(content, username);
+                                self.ws_state.broadcast_to_room(room, chat_msg);
+                            }
+                        }
+                        "typing" => {
+                            if let Some(room) = &self.room {
+                                let typing_msg = WsMessage::new(
+                                    "typing",
+                                    serde_json::json!({
+                                        "user": username,
+                                        "room": room,
+                                    }),
+                                );
+                                self.ws_state.broadcast_to_room_except(room, profile_id, typing_msg);
+                            }
+                        }
+                        "stop_typing" => {
+                            if let Some(room) = &self.room {
+                                let stop_typing_msg = WsMessage::new(
+                                    "stop_typing",
+                                    serde_json::json!({
+                                        "user": username,
+                                        "room": room,
+                                    }),
+                                );
+                                self.ws_state.broadcast_to_room_except(room, profile_id, stop_typing_msg);
+                            }
+                        }
+                        "ping" => {
+                            let pong = WsMessage::new(
+                                "pong",
+                                serde_json::json!({
+                                    "timestamp": chrono::Utc::now().timestamp(),
+                                }),
+                            );
+                            ctx.text(serde_json::to_string(&pong).unwrap_or_default());
+                        }
+                        _ => {
+                            tracing::warn!("Unknown WebSocket action: {}", msg.action);
+                        }
+                    }
                 }
             },
             Err(e) => {
@@ -445,55 +475,20 @@ pub async fn ws_handler(
 ) -> AppResult<HttpResponse> {
     let conn_id = Uuid::new_v4().to_string();
 
-    // Extract token from query parameter
-    let token = req
-        .query_string()
-        .split('&')
-        .find(|p| p.starts_with("token="))
-        .and_then(|p| p.strip_prefix("token="))
-        .map(|t| {
-            urlencoding::decode(t)
-                .map(|d| d.into_owned())
-                .unwrap_or_default()
-        });
+    tracing::info!("WebSocket upgrade request: {}", conn_id);
 
-    let (profile_id, email) = match token {
-        Some(t) => {
-            let state = req.app_data::<web::Data<AppState>>();
-            let secret = state
-                .as_ref()
-                .map(|s| s.config.jwt_secret.clone())
-                .unwrap_or_default();
-
-            match crate::middleware::auth::verify_token(&t, &secret) {
-                Ok(claims) => (claims.profile_id, claims.email),
-                Err(e) => {
-                    tracing::warn!("WebSocket auth failed: {:?}", e);
-                    return Err(AppError::Unauthorized(t!("ws.invalid_token").into_owned()));
-                }
-            }
-        }
-        None => {
-            return Err(AppError::Unauthorized(t!("ws.missing_token").into_owned()));
-        }
-    };
-
-    tracing::info!(
-        "WebSocket connection: {} (profile: {})",
-        conn_id,
-        profile_id
-    );
-    eprintln!(
-        "[WS] New connection: conn_id={}, profile_id={}",
-        conn_id, profile_id
-    );
+    let state = req.app_data::<web::Data<AppState>>();
+    let secret = state
+        .map(|s| s.config.jwt_secret.clone())
+        .unwrap_or_default();
 
     let ws_actor = WebSocketActor {
         conn_id,
-        profile_id,
-        username: email,
+        profile_id: None,
+        username: None,
         room: None,
         ws_state,
+        secret,
     };
 
     ws::start(ws_actor, &req, stream)

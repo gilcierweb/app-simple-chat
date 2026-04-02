@@ -18,7 +18,7 @@ export default defineNuxtConfig({
 
   },
 
-  modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxtjs/i18n'],
+  modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxtjs/i18n', 'nuxt-security'],
 
   app: {
     head: {
@@ -46,6 +46,26 @@ export default defineNuxtConfig({
   },
   
   // -- Runtime Config
+  security: {
+    headers: {
+      contentSecurityPolicy: {
+        'script-src': [
+          "'self'",
+          "'unsafe-eval'",
+          "'strict-dynamic'",
+          "'nonce-{{nonce}}'"
+        ],
+        'style-src': ["'self'", "https://fonts.googleapis.com", "'unsafe-inline'"],
+        'font-src': ["'self'", "https://fonts.gstatic.com"],
+        'img-src': ["'self'", "data:", "https://cdn.simple-chat.com"],
+        'connect-src': [
+          "'self'",
+          process.env.NUXT_PUBLIC_API_BASE || 'http://localhost:8080',
+          process.env.NUXT_PUBLIC_WS_URL || 'ws://localhost:8080'
+        ]
+      }
+    }
+  },
     runtimeConfig: {
       // Server-only (private)
       apiSecret: '',

@@ -10,6 +10,7 @@ pub mod conversations_repository;
 pub mod profiles_repository;
 pub mod refresh_tokens_repository;
 pub mod users_repository;
+pub mod user_keys_repository;
 
 // Re-export key types for convenient access
 pub use audit_logs_repository::IAuditLogRepository;
@@ -20,6 +21,7 @@ pub use conversations_repository::{
 pub use profiles_repository::IProfileRepository;
 pub use refresh_tokens_repository::IRefreshTokenRepository;
 pub use users_repository::IUserRepository;
+pub use user_keys_repository::IUserKeyRepository;
 
 // ── Manual implementations for all traits ─────────
 use crate::db::schema::{audit_logs, profiles, refresh_tokens, users};
@@ -29,7 +31,7 @@ use crate::models::refresh_token::{NewRefreshToken, RefreshToken};
 use crate::models::user::{NewUser, User};
 use crate::repositories::base::BaseRepo;
 use chrono::NaiveDateTime;
-use diesel::{ExpressionMethods, JoinOnDsl};
+use diesel::ExpressionMethods;
 use ipnet::IpNet;
 use uuid::Uuid;
 

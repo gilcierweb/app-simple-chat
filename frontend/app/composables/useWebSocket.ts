@@ -17,16 +17,20 @@ export const useWebSocket = () => {
     if (!token) return
     if (socket?.readyState === WebSocket.OPEN) return
 
-    const url = `${config.public.wsUrl}?token=${encodeURIComponent(token)}`
+    const url = config.public.wsUrl as string
     socket = new WebSocket(url)
 
     socket.onopen = () => {
+      // First-Message Protocol: Send token securely inside the tunnel
+      socket?.send(JSON.stringify({ action: 'auth', data: { token } }))
+      
       connected.value = true
       if (reconnectTimer) { clearTimeout(reconnectTimer); reconnectTimer = null }
+      
       // Heartbeat ping every 20s
       pingTimer = setInterval(() => {
         if (socket?.readyState === WebSocket.OPEN) {
-          socket.send(JSON.stringify({ type: 'ping' }))
+          socket.send(JSON.stringify({ action: 'ping', data: {} }))
         }
       }, 20_000)
     }
