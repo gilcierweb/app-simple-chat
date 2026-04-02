@@ -1,21 +1,22 @@
 <template>
-  <!-- FlyonUI Modal Overlay -->
-  <div
-    v-if="isOpen"
-    class="overlay modal modal-middle"
-    :class="{ 'overlay-open:opacity-100 opacity-100': isOpen }"
-    role="dialog"
-    tabindex="-1"
-    @click.self="closeModal"
-  >
-    <div class="modal-dialog">
-      <div class="modal-content bg-dark-900 border border-dark-800">
+  <!-- Modal Vue Native - Middle Center -->
+  <Teleport to="body">
+    <div
+      v-if="modelValue"
+      class="fixed inset-0 z-50 flex items-center justify-center p-4"
+      @click.self="closeModal"
+    >
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm transition-opacity"></div>
+
+      <!-- Modal Content - FlyonUI Middle Center Style -->
+      <div class="relative bg-dark-900 border border-dark-800 rounded-lg shadow-2xl w-full max-w-md overflow-hidden">
         <!-- Header -->
-        <div class="modal-header border-b border-dark-800">
-          <h3 class="modal-title text-text-primary">{{ t('chat.newModal.title') }}</h3>
+        <div class="modal-header flex items-center justify-between p-6 border-b border-dark-800">
+          <h3 class="modal-title font-display text-xl font-bold text-text-primary">{{ t('chat.newModal.title') }}</h3>
           <button
             type="button"
-            class="btn btn-ghost btn-circle btn-sm absolute end-3 top-3"
+            class="btn btn-text btn-circle btn-sm absolute end-3 top-3"
             aria-label="Close"
             @click="closeModal"
           >
@@ -24,13 +25,14 @@
         </div>
 
         <!-- Body -->
-        <div class="modal-body space-y-4">
+        <div class="modal-body p-6 space-y-4">
           <!-- Email Input -->
           <div class="form-control">
             <label class="label-text mb-2 block text-text-secondary">{{ t('chat.newModal.addByEmail') }}</label>
             <div class="input input-bordered border-dark-700 bg-dark-950 flex items-center gap-3 px-4 py-3">
               <span class="icon-[lucide--mail] size-5 text-text-muted shrink-0"></span>
               <input
+                ref="emailInputRef"
                 v-model="emailInput"
                 type="email"
                 :placeholder="t('chat.newModal.emailPlaceholder')"
@@ -64,7 +66,7 @@
         </div>
 
         <!-- Footer -->
-        <div class="modal-footer border-t border-dark-800 gap-2">
+        <div class="modal-footer flex justify-end gap-2 p-6 border-t border-dark-800">
           <button class="btn btn-ghost btn-sm" @click="closeModal">
             {{ t('chat.newModal.cancel') }}
           </button>
@@ -82,14 +84,7 @@
         </div>
       </div>
     </div>
-  </div>
-
-  <!-- Backdrop -->
-  <div
-    v-if="isOpen"
-    class="fixed inset-0 bg-dark-950/80 z-[998]"
-    @click="closeModal"
-  ></div>
+  </Teleport>
 </template>
 
 <script setup lang="ts">
@@ -106,6 +101,7 @@ const router = useRouter()
 const convStore = useConversationStore()
 const { t } = useI18n()
 
+const emailInputRef = ref<HTMLInputElement>()
 const emailInput = ref('')
 const selectedEmail = ref('')
 const selectedUserId = ref('')
@@ -113,9 +109,20 @@ const loading = ref(false)
 const creating = ref(false)
 const errorMessage = ref('')
 
-const isOpen = computed({
-  get: () => props.modelValue,
-  set: (value) => emit('update:modelValue', value)
+// Focus input when modal opens
+watch(() => props.modelValue, (newVal) => {
+  if (newVal) {
+    // Reset state
+    emailInput.value = ''
+    selectedEmail.value = ''
+    selectedUserId.value = ''
+    errorMessage.value = ''
+
+    // Focus input after modal opens
+    nextTick(() => {
+      emailInputRef.value?.focus()
+    })
+  }
 })
 
 async function addEmail() {
@@ -143,7 +150,7 @@ async function addEmail() {
 }
 
 function closeModal() {
-  isOpen.value = false
+  emit('update:modelValue', false)
 }
 
 async function handleStartConversation() {
@@ -179,14 +186,4 @@ async function createConversation() {
     creating.value = false
   }
 }
-
-// Reset state when modal opens
-watch(() => props.modelValue, (newVal) => {
-  if (newVal) {
-    emailInput.value = ''
-    selectedEmail.value = ''
-    selectedUserId.value = ''
-    errorMessage.value = ''
-  }
-})
 </script>

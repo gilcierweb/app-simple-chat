@@ -283,7 +283,14 @@ export const useKeyStore = () => {
     signed_prekey: string
     one_time_prekey: string | null
   } | null> {
-    const token = localStorage.getItem('access_token')
+    const authStore = useAuthStore()
+    const token = authStore.accessToken
+    
+    if (!token) {
+      console.error('[fetchPeerBundle] No access token available')
+      return null
+    }
+    
     try {
       const response = await $fetch<{
         identity_key: string
@@ -296,7 +303,8 @@ export const useKeyStore = () => {
         },
       })
       return response
-    } catch {
+    } catch (e: any) {
+      console.error('[fetchPeerBundle] Failed:', e?.statusCode, e?.message)
       return null
     }
   }

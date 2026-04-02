@@ -84,7 +84,10 @@
 <script setup lang="ts">
 import { useAuthStore } from '~/stores/auth'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({ 
+  layout: 'default',
+  requiresAuth: true,
+})
 
 const authStore = useAuthStore()
 const { logout, authFetch } = useAuth()

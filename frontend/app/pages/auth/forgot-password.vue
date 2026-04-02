@@ -63,7 +63,10 @@
 <script setup lang="ts">
 import { useApiAlert } from '~/composables/useApiAlert'
 
-definePageMeta({ layout: 'auth' })
+definePageMeta({ 
+  layout: 'auth',
+  guestOnly: true,
+})
 const { t } = useI18n()
 
 const { showError, showSuccess } = useApiAlert()

@@ -1,3 +1,18 @@
+// -- Route Meta for Authentication
+
+export interface AuthRouteMeta {
+  /** Requires authentication to access this route */
+  requiresAuth?: boolean
+  /** Redirect authenticated users away from this route (e.g., login page) */
+  guestOnly?: boolean
+  /** Required roles to access this route */
+  requiredRoles?: string[]
+  /** Route name to redirect when unauthenticated (default: /auth/login) */
+  loginRedirect?: string
+  /** Route name to redirect when authenticated but on guest-only route (default: /chat) */
+  homeRedirect?: string
+}
+
 // -- Auth 
 
 export interface User {

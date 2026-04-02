@@ -142,6 +142,7 @@ import { useAuthStore } from '~/stores/auth'
 import { useConversationStore } from '~/stores/conversations'
 import ConversationList from '~/components/chat/ConversationList.vue'
 import NewChatModal from '~/components/chat/NewChatModal.vue'
+import AlertContainer from '~/components/ui/AlertContainer.vue'
 import type { Conversation } from '~/types'
 
 const authStore = useAuthStore()

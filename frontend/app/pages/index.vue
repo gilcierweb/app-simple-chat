@@ -129,7 +129,7 @@
                 <span class="icon-[lucide--message-circle-plus] size-5"></span>
                 Iniciar Chat Agora
               </NuxtLink>
-              <button class="btn btn-outline btn-primary btn-lg" onclick="githubModal.showModal()">
+              <button class="btn btn-outline btn-primary btn-lg" @click="openGithubModal">
                 <span class="icon-[lucide--github] size-5"></span>
                 Código Fonte
               </button>
@@ -589,7 +589,7 @@
               </div>
               <h3 class="card-title justify-center text-text-primary group-hover:text-brand-500 transition-colors">PWA</h3>
               <p class="text-text-secondary text-sm">Instale como app no celular</p>
-              <button class="btn btn-primary btn-soft mt-4 w-full" onclick="pwaModal.showModal()">
+              <button class="btn btn-primary btn-soft mt-4 w-full" @click="openPwaModal">
                 <span class="icon-[lucide--download] size-4"></span>
                 Instalar
               </button>
@@ -602,7 +602,7 @@
               </div>
               <h3 class="card-title justify-center text-text-primary group-hover:text-accent-500 transition-colors">Self-Host</h3>
               <p class="text-text-secondary text-sm">Hospede seu próprio servidor</p>
-              <button class="btn btn-primary btn-soft mt-4 w-full" onclick="githubModal.showModal()">
+              <button class="btn btn-primary btn-soft mt-4 w-full" data-overlay="#githubModal">
                 <span class="icon-[lucide--github] size-4"></span>
                 GitHub
               </button>
@@ -846,7 +846,7 @@
                 <span class="icon-[lucide--rocket] size-5"></span>
                 Começar Gratuitamente
               </NuxtLink>
-              <button class="btn btn-outline btn-primary btn-lg" onclick="docsModal.showModal()">
+              <button class="btn btn-outline btn-primary btn-lg" @click="openDocsModal">
                 <span class="icon-[lucide--book-open] size-5"></span>
                 Documentação
               </button>
@@ -921,136 +921,167 @@
   </main>
 
   <!-- Modals -->
-  <!-- PWA Modal -->
-  <dialog id="pwaModal" class="modal">
-    <div class="modal-box bg-dark-900 border border-dark-800 max-w-md">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/20">
-          <span class="icon-[lucide--smartphone] size-6 text-brand-500"></span>
+  <!-- PWA Modal - Vue Native -->
+  <Teleport to="body">
+    <div v-if="showPwaModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showPwaModal = false">
+      <!-- Backdrop -->
+      <div class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"></div>
+      
+      <!-- Modal Content -->
+      <div class="relative bg-dark-900 border border-dark-800 rounded-lg shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="flex items-center gap-3 p-6 border-b border-dark-800">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-brand-500/20">
+            <span class="icon-[lucide--smartphone] size-6 text-brand-500"></span>
+          </div>
+          <div>
+            <h3 class="font-display text-xl font-bold text-text-primary">Instalar PWA</h3>
+            <p class="text-sm text-text-muted">Progressive Web App</p>
+          </div>
+          <button @click="showPwaModal = false" class="btn btn-ghost btn-circle btn-sm absolute end-4 top-6">
+            <span class="icon-[lucide--x] size-4"></span>
+          </button>
         </div>
-        <div>
-          <h3 class="font-display text-xl font-bold text-text-primary">Instalar PWA</h3>
-          <p class="text-sm text-text-muted">Progressive Web App</p>
+        <div class="p-6 space-y-4 text-text-secondary">
+          <p>Para instalar o AppSimpleChat no seu dispositivo:</p>
+          <ol class="list-decimal list-inside space-y-2 text-sm">
+            <li>Abra o app no navegador Chrome/Edge/Safari</li>
+            <li>Clique no ícone de instalação na barra de endereço</li>
+            <li>Confirme a instalação</li>
+            <li>O app aparecerá na home screen</li>
+          </ol>
+          <div class="alert alert-soft alert-info mt-4">
+            <span class="icon-[lucide--info] size-4"></span>
+            <span class="text-sm">Funciona offline e recebe notificações push!</span>
+          </div>
         </div>
-      </div>
-      <div class="space-y-4 text-text-secondary">
-        <p>Para instalar o AppSimpleChat no seu dispositivo:</p>
-        <ol class="list-decimal list-inside space-y-2 text-sm">
-          <li>Abra o app no navegador Chrome/Edge/Safari</li>
-          <li>Clique no ícone de instalação na barra de endereço</li>
-          <li>Confirme a instalação</li>
-          <li>O app aparecerá na home screen</li>
-        </ol>
-        <div class="alert alert-soft alert-info mt-4">
-          <span class="icon-[lucide--info] size-4"></span>
-          <span class="text-sm">Funciona offline e recebe notificações push!</span>
+        <div class="p-6 border-t border-dark-800 flex justify-end">
+          <button @click="showPwaModal = false" class="btn btn-primary">Entendi</button>
         </div>
-      </div>
-      <div class="modal-action mt-6">
-        <button class="btn btn-primary" onclick="pwaModal.close()">Entendi</button>
       </div>
     </div>
-    <form method="dialog" class="modal-backdrop bg-dark-950/80">
-      <button>close</button>
-    </form>
-  </dialog>
+  </Teleport>
 
-  <!-- GitHub Modal -->
-  <dialog id="githubModal" class="modal">
-    <div class="modal-box bg-dark-900 border border-dark-800 max-w-md">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-500/20">
-          <span class="icon-[lucide--github] size-6 text-accent-500"></span>
+  <!-- GitHub Modal - Vue Native -->
+  <Teleport to="body">
+    <div v-if="showGithubModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showGithubModal = false">
+      <div class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"></div>
+      <div class="relative bg-dark-900 border border-dark-800 rounded-lg shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="flex items-center gap-3 p-6 border-b border-dark-800">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-accent-500/20">
+            <span class="icon-[lucide--github] size-6 text-accent-500"></span>
+          </div>
+          <div>
+            <h3 class="font-display text-xl font-bold text-text-primary">Código Aberto</h3>
+            <p class="text-sm text-text-muted">Self-hosting disponível</p>
+          </div>
+          <button @click="showGithubModal = false" class="btn btn-ghost btn-circle btn-sm absolute end-4 top-6">
+            <span class="icon-[lucide--x] size-4"></span>
+          </button>
         </div>
-        <div>
-          <h3 class="font-display text-xl font-bold text-text-primary">Código Aberto</h3>
-          <p class="text-sm text-text-muted">Self-hosting disponível</p>
-        </div>
-      </div>
-      <div class="space-y-4 text-text-secondary">
-        <p>O AppSimpleChat é 100% open source sob licença MIT.</p>
-        <div class="space-y-3 text-sm">
-          <div class="flex items-center gap-3">
-            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
-            <span>Código fonte completo no GitHub</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
-            <span>Docker Compose incluído</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
-            <span>Documentação de self-hosting</span>
-          </div>
-          <div class="flex items-center gap-3">
-            <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
-            <span>Contribuições bem-vindas!</span>
+        <div class="p-6 space-y-4 text-text-secondary">
+          <p>O AppSimpleChat é 100% open source sob licença MIT.</p>
+          <div class="space-y-3 text-sm">
+            <div class="flex items-center gap-3">
+              <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+              <span>Código fonte completo no GitHub</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+              <span>Docker Compose incluído</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+              <span>Documentação de self-hosting</span>
+            </div>
+            <div class="flex items-center gap-3">
+              <span class="icon-[lucide--check-circle] size-5 text-primary"></span>
+              <span>Contribuições bem-vindas!</span>
+            </div>
           </div>
         </div>
-      </div>
-      <div class="modal-action mt-6 gap-2">
-        <button class="btn btn-ghost" onclick="githubModal.close()">Fechar</button>
-        <a href="https://github.com" target="_blank" class="btn btn-primary">
-          <span class="icon-[lucide--external-link] size-4"></span>
-          Ver GitHub
-        </a>
+        <div class="p-6 border-t border-dark-800 flex justify-end gap-2">
+          <button @click="showGithubModal = false" class="btn btn-ghost">Fechar</button>
+          <a href="https://github.com" target="_blank" class="btn btn-primary">
+            <span class="icon-[lucide--external-link] size-4"></span>
+            Ver GitHub
+          </a>
+        </div>
       </div>
     </div>
-    <form method="dialog" class="modal-backdrop bg-dark-950/80">
-      <button>close</button>
-    </form>
-  </dialog>
+  </Teleport>
 
-  <!-- Docs Modal -->
-  <dialog id="docsModal" class="modal">
-    <div class="modal-box bg-dark-900 border border-dark-800 max-w-md">
-      <div class="flex items-center gap-3 mb-4">
-        <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
-          <span class="icon-[lucide--book-open] size-6 text-primary"></span>
+  <!-- Docs Modal - Vue Native -->
+  <Teleport to="body">
+    <div v-if="showDocsModal" class="fixed inset-0 z-50 flex items-center justify-center p-4" @click.self="showDocsModal = false">
+      <div class="absolute inset-0 bg-dark-950/80 backdrop-blur-sm"></div>
+      <div class="relative bg-dark-900 border border-dark-800 rounded-lg shadow-2xl max-w-md w-full overflow-hidden">
+        <div class="flex items-center gap-3 p-6 border-b border-dark-800">
+          <div class="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/20">
+            <span class="icon-[lucide--book-open] size-6 text-primary"></span>
+          </div>
+          <div>
+            <h3 class="font-display text-xl font-bold text-text-primary">Documentação</h3>
+            <p class="text-sm text-text-muted">Guia completo do app</p>
+          </div>
+          <button @click="showDocsModal = false" class="btn btn-ghost btn-circle btn-sm absolute end-4 top-6">
+            <span class="icon-[lucide--x] size-4"></span>
+          </button>
         </div>
-        <div>
-          <h3 class="font-display text-xl font-bold text-text-primary">Documentação</h3>
-          <p class="text-sm text-text-muted">Guia completo do app</p>
+        <div class="p-6 space-y-3 text-text-secondary text-sm">
+          <div class="menu menu-vertical gap-1">
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+              <span class="icon-[lucide--rocket] size-4 text-primary"></span>
+              <span>Guia de Início Rápido</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+              <span class="icon-[lucide--shield] size-4 text-primary"></span>
+              <span>Arquitetura de Segurança</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+              <span class="icon-[lucide--key] size-4 text-primary"></span>
+              <span>Gerenciamento de Chaves</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+              <span class="icon-[lucide--server] size-4 text-primary"></span>
+              <span>Self-Hosting Guide</span>
+            </a>
+            <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
+              <span class="icon-[lucide--code-2] size-4 text-primary"></span>
+              <span>API Reference</span>
+            </a>
+          </div>
         </div>
-      </div>
-      <div class="space-y-3 text-text-secondary text-sm">
-        <div class="menu menu-vertical gap-1">
-          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
-            <span class="icon-[lucide--rocket] size-4 text-primary"></span>
-            <span>Guia de Início Rápido</span>
-          </a>
-          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
-            <span class="icon-[lucide--shield] size-4 text-primary"></span>
-            <span>Arquitetura de Segurança</span>
-          </a>
-          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
-            <span class="icon-[lucide--key] size-4 text-primary"></span>
-            <span>Gerenciamento de Chaves</span>
-          </a>
-          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
-            <span class="icon-[lucide--server] size-4 text-primary"></span>
-            <span>Self-Hosting Guide</span>
-          </a>
-          <a href="#" class="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-dark-800 transition-colors">
-            <span class="icon-[lucide--code-2] size-4 text-primary"></span>
-            <span>API Reference</span>
-          </a>
+        <div class="p-6 border-t border-dark-800 flex justify-end">
+          <button @click="showDocsModal = false" class="btn btn-primary">Fechar</button>
         </div>
-      </div>
-      <div class="modal-action mt-6">
-        <button class="btn btn-primary" onclick="docsModal.close()">Fechar</button>
       </div>
     </div>
-    <form method="dialog" class="modal-backdrop bg-dark-950/80">
-      <button>close</button>
-    </form>
-  </dialog>
+  </Teleport>
 </template>
 
-<script setup>
+<script setup lang="ts">
 definePageMeta({
   layout: 'landing'
 })
+
+// Estados reativos dos modais
+const showPwaModal = ref(false)
+const showGithubModal = ref(false)
+const showDocsModal = ref(false)
+
+// Funções para abrir modais
+function openPwaModal() {
+  showPwaModal.value = true
+}
+
+function openGithubModal() {
+  showGithubModal.value = true
+}
+
+function openDocsModal() {
+  showDocsModal.value = true
+}
+
 useHead({
   title: 'AppSimpleChat - Chat Seguro com Criptografia End-to-End',
   meta: [

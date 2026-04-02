@@ -1,26 +1,24 @@
-import type { AuthResponse, User } from '~/types'
+import type { AuthResponse } from '~/types'
 import { useAuthStore } from '~/stores/auth'
 
 /**
  * Authentication composable — handles login, register, token management.
- * Tokens are stored in localStorage; auth state is derived from them.
+ * Uses Pinia store with cookie persistence (SSR-friendly via pinia-plugin-persistedstate/nuxt)
  */
 export const useAuth = () => {
   const config = useRuntimeConfig()
   const router = useRouter()
   const authStore = useAuthStore()
+  const route = useRoute()
 
-  const user = useState<User | null>('auth:user', () => null)
+  const user = computed(() => authStore.user)
   const loading = ref(false)
   const error = ref<string | null>(null)
   const { t } = useI18n()
 
-  const accessToken = computed(() => {
-    if (import.meta.client) return localStorage.getItem('access_token')
-    return null
-  })
+  const accessToken = computed(() => authStore.accessToken)
 
-  const isAuthenticated = computed(() => !!user.value && !!accessToken.value)
+  const isAuthenticated = computed(() => authStore.isAuthenticated)
 
   async function register(email: string, password: string) {
     loading.value = true
@@ -48,16 +46,21 @@ export const useAuth = () => {
         body: { email, password, totp_code: totpCode || undefined },
       })
 
-      localStorage.setItem('access_token', data.access_token)
-      localStorage.setItem('refresh_token', data.refresh_token)
-      user.value = data.user
+      // Store tokens in Pinia (automatically persisted to cookies)
+      authStore.setTokens(data.access_token, data.refresh_token)
       authStore.setUser(data.user)
 
       // Upload keys if not yet done
       const keyStore = useKeyStore()
       await keyStore.ensureKeys(data.access_token)
 
-      await router.push('/chat')
+      // Handle redirect after login
+      const redirect = route.query.redirect as string
+      if (redirect) {
+        await router.push(decodeURIComponent(redirect))
+      } else {
+        await router.push('/chat')
+      }
     } catch (e: any) {
       error.value = e?.data?.message || t('auth.errors.loginFailed')
       throw e
@@ -67,7 +70,7 @@ export const useAuth = () => {
   }
 
   async function logout() {
-    const token = localStorage.getItem('access_token')
+    const token = authStore.accessToken
     if (token) {
       try {
         await $fetch(`${config.public.apiBase}/auth/logout`, {
@@ -76,23 +79,24 @@ export const useAuth = () => {
         })
       } catch {}
     }
-    localStorage.removeItem('access_token')
-    localStorage.removeItem('refresh_token')
-    user.value = null
-    authStore.setUser(null)
+    
+    // Clear everything via store (cookies cleared automatically)
+    authStore.logout()
     await router.push('/auth/login')
   }
 
   async function refreshAccessToken(): Promise<string | null> {
-    const refreshToken = localStorage.getItem('refresh_token')
+    const refreshToken = authStore.refreshToken
     if (!refreshToken) return null
     try {
       const data = await $fetch<{ access_token: string; refresh_token: string }>(
         `${config.public.apiBase}/auth/refresh`,
         { method: 'POST', body: { refresh_token: refreshToken } },
       )
-      localStorage.setItem('access_token', data.access_token)
-      localStorage.setItem('refresh_token', data.refresh_token)
+      
+      // Update tokens in store (automatically persisted to cookies)
+      authStore.setTokens(data.access_token, data.refresh_token)
+      
       return data.access_token
     } catch {
       await logout()
@@ -103,17 +107,18 @@ export const useAuth = () => {
   /**
    * Perform an authenticated API fetch with automatic token refresh.
    */
-  async function authFetch<T>(url: string, opts: RequestInit = {}): Promise<T> {
-    let token = localStorage.getItem('access_token')
+  async function authFetch<T>(url: string, opts: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; body?: any; headers?: Record<string, string> } = {}): Promise<T> {
+    let token = authStore.accessToken
     
     const makeRequest = async (authToken: string): Promise<T> => {
       return await $fetch<T>(`${config.public.apiBase}${url}`, {
-        ...opts,
+        method: opts.method || 'GET',
         headers: {
           'Content-Type': 'application/json',
           ...opts.headers,
           Authorization: `Bearer ${authToken}`,
         },
+        body: opts.body,
       })
     }
 
@@ -129,5 +134,5 @@ export const useAuth = () => {
     }
   }
 
-  return { user, loading, error, isAuthenticated, register, login, logout, authFetch }
+  return { user, loading, error, isAuthenticated, accessToken, register, login, logout, authFetch }
 }

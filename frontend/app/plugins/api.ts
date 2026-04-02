@@ -2,7 +2,7 @@ export default defineNuxtPlugin((nuxtApp) => {
   const config = useRuntimeConfig()
   const baseURL = config.public.apiBase || 'http://localhost:8080/api/v1'
 
-  const authApi = async <T>(url: string, options: any = {}): Promise<T> => {
+  const authApi = async <T>(url: string, options: { method?: 'GET' | 'POST' | 'PUT' | 'DELETE' | 'PATCH'; body?: any; headers?: Record<string, string> } = {}): Promise<T> => {
     const authStore = useAuthStore()
     
     const headers: Record<string, string> = {
@@ -32,8 +32,8 @@ export default defineNuxtPlugin((nuxtApp) => {
             method: 'POST',
             body: { refresh_token: authStore.refreshToken },
           })
-          authStore.accessToken = refreshData.access_token
-          authStore.refreshToken = refreshData.refresh_token
+          // Use setTokens to properly update store (automatically persisted to cookies)
+          authStore.setTokens(refreshData.access_token, refreshData.refresh_token)
           
           const retryResponse = await $fetch<T>(`${baseURL}${url}`, {
             method: options.method || 'GET',

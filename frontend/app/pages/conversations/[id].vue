@@ -93,7 +93,10 @@ import { useConversationStore } from '~/stores/conversations'
 import MessageBubble from '~/components/chat/MessageBubble.vue'
 import MessageInput from '~/components/chat/MessageInput.vue'
 
-definePageMeta({ layout: 'default' })
+definePageMeta({ 
+  layout: 'default',
+  requiresAuth: true,
+})
 
 const route = useRoute()
 const conversationId = route.params.id as string

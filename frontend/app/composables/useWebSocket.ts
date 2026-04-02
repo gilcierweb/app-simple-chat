@@ -10,9 +10,10 @@ const handlers = new Set<WsEventHandler>()
 export const useWebSocket = () => {
   const config = useRuntimeConfig()
   const connected = useState('ws:connected', () => false)
+  const authStore = useAuthStore()
 
   function connect() {
-    const token = localStorage.getItem('access_token')
+    const token = authStore.accessToken
     if (!token) return
     if (socket?.readyState === WebSocket.OPEN) return
 

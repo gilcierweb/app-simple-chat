@@ -22,7 +22,10 @@
 </template>
 
 <script setup lang="ts">
-definePageMeta({ layout: 'auth' })
+definePageMeta({ 
+  layout: 'auth',
+  guestOnly: true,
+})
 const { t } = useI18n()
 
 const route = useRoute()

@@ -18,7 +18,7 @@ export default defineNuxtConfig({
 
   },
 
-  modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate', '@nuxtjs/i18n'],
+  modules: ['@pinia/nuxt', 'pinia-plugin-persistedstate/nuxt', '@nuxtjs/i18n'],
 
   app: {
     head: {
@@ -99,6 +99,14 @@ export default defineNuxtConfig({
         cookieKey: 'i18n_redirected',
         redirectOn: 'root'
       }
+    },
+  
+    piniaPluginPersistedstate: {
+      storage: 'cookies',
+      cookieOptions: {
+        sameSite: 'lax',
+        maxAge: 7 * 24 * 60 * 60, // 7 days
+      },
     },
   
     nitro: {
