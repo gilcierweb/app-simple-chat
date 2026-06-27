@@ -2,6 +2,10 @@
 
 A full-stack, real-time chat application with end-to-end encryption (E2EE), built with **Rust (Actix + Diesel)** on the backend and **Nuxt 4 (Vue 3)** on the frontend.
 
+![App Simple Chat](frontend/app/assets/images/screenshot-1.webp)
+![App Simple Chat](frontend/app/assets/images/screenshot-2.webp)
+![App Simple Chat](frontend/app/assets/images/screenshot-3.webp)
+
 ## Table of Contents
 
 - [Project Summary](#project-summary)
